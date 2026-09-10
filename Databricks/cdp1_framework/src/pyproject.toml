@@ -1,0 +1,8 @@
+[project]
+name = "cdp-dq-framework"
+version = "1.0.0"
+requires-python = ">=3.10"
+dependencies = []
+# pyspark provided by the Databricks runtime
+[project.optional-dependencies]
+test = ["pyspark>=3.5", "pytest>=7"]
