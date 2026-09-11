@@ -8,11 +8,7 @@ A downloadable architecture, code quality, security, and governance assessment i
 
 Use the link above to access the report in the repository, or download the HTML file and open it locally in a browser for the full rendered dashboard view.
 
-Assessment summary:
-
-- Overall score: 4.8 / 10
-- Strongest area: Design & Data Architecture (6.2 / 10)
-- Weakest areas: Governance (4.0 / 10) and Security (4.1 / 10)
+The dashboard is the single source of truth for the current scores, findings, and recommendations.
 
 ## SonarCloud setup
 
