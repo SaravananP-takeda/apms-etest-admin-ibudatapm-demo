@@ -4,7 +4,7 @@
 
 A downloadable architecture, code quality, security, and governance assessment is available at:
 
-- `assessment/repo-assessment-dashboard.html`
+- [assessment/repo-assessment-dashboard.html](assessment/repo-assessment-dashboard.html)
 
 ## SonarCloud setup
 
