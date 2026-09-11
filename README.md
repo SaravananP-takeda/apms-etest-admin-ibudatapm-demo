@@ -6,6 +6,8 @@ A downloadable architecture, code quality, security, and governance assessment i
 
 - [assessment/repo-assessment-dashboard.html](assessment/repo-assessment-dashboard.html)
 
+Open the HTML file in a browser from GitHub or download it to view the full dashboard report.
+
 ## SonarCloud setup
 
 This repository is configured for SonarCloud analysis via GitHub Actions.
