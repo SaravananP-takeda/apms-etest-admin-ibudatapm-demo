@@ -92,7 +92,7 @@
         <li>The repository shows a valid <strong>metadata-driven ingestion pattern</strong> with Airflow orchestrating Databricks jobs and SQL metadata tables defining contracts and load strategies.</li>
         <li>The current implementation is <strong>heavily configuration- and environment-specific</strong>, with large DAG files and parameter modules that reduce maintainability and increase change risk.</li>
         <li>Quality assurance is <strong>insufficient</strong>: no real test suite is present, CI only contains a partial SonarCloud workflow, and notebooks are not backed by automated validation.</li>
-        <li>Security posture is <strong>below enterprise expectation</strong> for a data platform repository because sensitive operational values, email recipients, bucket names, and secret references are embedded in versioned code and governance artifacts are missing.</li>
+        <li>Security posture is <strong>below enterprise expectation</strong> for a data platform repository because sensitive operational configuration appears to be handled in source-visible ways and key governance controls are not evident in the reviewed assets.</li>
         <li>This repo can be used as a migration or operational asset, but it does <strong>not yet demonstrate production-grade engineering governance</strong> without stronger testing, policy controls, and deployment discipline.</li>
       </ul>
     </section>
@@ -236,6 +236,7 @@
 
     <section class="card section">
       <h3>Security and governance view</h3>
+      <p class="small">These conclusions are based on the static review methodology described below, covering repository structure, workflow assets, orchestration code, shared utilities, configuration modules, and metadata definitions.</p>
       <ul>
         <li><strong>Secrets management:</strong> some secret indirection exists, but environment data and sensitive operational parameters should move fully to a managed secrets and configuration service.</li>
         <li><strong>Data control enforcement:</strong> the metadata model is promising, but bypass behavior and absence of policy-as-code validation reduce assurance.</li>
@@ -256,6 +257,17 @@
         <li>Review DQ bypass paths and require explicit approvals or compensating controls before unvalidated data can land in curated zones.</li>
         <li>Remove pandas driver conversions where scalable Spark-native implementations are practical.</li>
       </ol>
+    </section>
+
+    <section class="card section">
+      <h3>Assessment methodology</h3>
+      <ul>
+        <li>Reviewed repository structure, root documentation, and GitHub workflow assets.</li>
+        <li>Reviewed Airflow DAGs, shared callbacks, and parameter/configuration modules.</li>
+        <li>Reviewed Databricks framework source files, notebooks, and metadata SQL definitions.</li>
+        <li>Checked for visible testing assets, quality gates, and repository governance artifacts.</li>
+        <li>Derived scores from observable source-controlled evidence only; runtime controls were not directly inspected.</li>
+      </ul>
     </section>
 
     <section class="card section">
