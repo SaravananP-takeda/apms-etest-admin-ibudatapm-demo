@@ -6,7 +6,7 @@ A downloadable architecture, code quality, security, and governance assessment i
 
 - [assessment/repo-assessment-dashboard.html](assessment/repo-assessment-dashboard.html)
 
-Download the HTML file from the repository and open it locally in a browser to view the full dashboard report.
+Use the link above to access the report in the repository, or download the HTML file and open it locally in a browser for the full rendered dashboard view.
 
 ## SonarCloud setup
 
