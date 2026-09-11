@@ -158,10 +158,10 @@
         <span class="pill">Environment-separated metadata</span>
       </div>
       <ul>
-        <li><code>Databricks/cdp1_framework/metadata/DEV/01_create_metadata_tables.sql</code> defines control tables that support ingestion contracting and auditability.</li>
-        <li><code>Databricks/cdp1_framework/src/cdp_dq_framework/models.py</code> centralizes contract parsing into an explicit model.</li>
-        <li><code>Databricks/cdp1_framework/src/cdp_dq_framework/contract.py</code> shows reusable rule checks for mandatory fields, dates, duplicates, numeric validation, and keys.</li>
-        <li><code>Airflow/dags/DA_COM_GEM_VN_COMMON.py</code> includes a practical S3 wildcard resolution callback that improves file-arrival handling.</li>
+        <li>The Databricks metadata layer defines control tables that support ingestion contracting and auditability.</li>
+        <li>The data quality framework centralizes contract parsing into an explicit model.</li>
+        <li>The contract validation layer provides reusable checks for mandatory fields, dates, duplicates, numeric validation, and keys.</li>
+        <li>The Airflow shared callback layer includes wildcard file resolution logic that improves file-arrival handling.</li>
       </ul>
     </section>
 
@@ -184,49 +184,49 @@
           <tr>
             <td class="risk-high">High</td>
             <td>No automated tests for production code or DAG behavior.</td>
-            <td><code>Databricks/cdp1_framework/src/pyproject.toml</code> defines optional test dependencies, but the repo has no test files; <code>.github/workflows/sonarcloud.yml</code> comments out test execution.</td>
+            <td>The repository declares test dependencies, but no real test suite is present and CI does not execute tests.</td>
             <td>Low release confidence and high regression risk.</td>
           </tr>
           <tr>
             <td class="risk-high">High</td>
             <td>Operational and secret-adjacent values are embedded in versioned configuration.</td>
-            <td><code>Airflow/dags/parameters/DA_COM_GEM_VN_PARAMETERS.py</code> stores recipient lists, bucket names, notebook paths, IDs, and placeholders such as <code>client_secret</code>.</td>
+            <td>Environment-specific configuration modules include operational recipients, storage locations, job references, and secret-adjacent placeholders in versioned source.</td>
             <td>Increased exposure, poor separation of duties, and harder environment rotation.</td>
           </tr>
           <tr>
             <td class="risk-high">High</td>
             <td>Large hand-authored DAGs are difficult to review and maintain.</td>
-            <td><code>Airflow/dags/DA-COM-GEM-VN.py</code> is a very large generated-style DAG with many repeated operator definitions and inline environment branching.</td>
+            <td>The main orchestration layer contains large generated-style DAG definitions with repeated operator wiring and inline environment branching.</td>
             <td>Higher defect rate, slower delivery, and weak change isolation.</td>
           </tr>
           <tr>
             <td class="risk-medium">Medium</td>
             <td>Contract validation can be bypassed by metadata flag.</td>
-            <td><code>Databricks/cdp1_framework/src/cdp_dq_framework/contract.py</code> exits early when <code>no_validation_flag</code> is set.</td>
+            <td>The contract validation layer supports a metadata-driven bypass path that can skip checks entirely.</td>
             <td>Potential ingestion of unvalidated data without compensating controls visible in repo.</td>
           </tr>
           <tr>
             <td class="risk-medium">Medium</td>
             <td>Scalability and memory risks exist in the Databricks utility layer.</td>
-            <td><code>Databricks/cdp1_framework/src/cdp_dq_framework/utils.py</code> converts Parquet to pandas via <code>toPandas()</code> and rehydrates to Spark.</td>
+            <td>The utility layer performs dataframe conversions through a driver-side in-memory step before returning data to Spark.</td>
             <td>Potential driver memory pressure and poor large-file handling.</td>
           </tr>
           <tr>
             <td class="risk-medium">Medium</td>
             <td>Repository governance artifacts are missing.</td>
-            <td>No visible <code>CODEOWNERS</code>, <code>CONTRIBUTING.md</code>, <code>SECURITY.md</code>, or license file in the repository root or <code>.github</code>.</td>
+            <td>Key repository governance artifacts for ownership, contribution, security response, and licensing are not present.</td>
             <td>Weak review accountability, onboarding clarity, and policy communication.</td>
           </tr>
           <tr>
             <td class="risk-medium">Medium</td>
             <td>Codebase contains style and defect indicators.</td>
-            <td><code>Databricks/cdp1_framework/src/cdp_dq_framework/utils.py</code> contains a probable typo <code>laod(file_path)</code>; multiple modules rely on <code>print</code> and <code>sys.path.insert</code>.</td>
+            <td>The codebase shows defect indicators such as typo-level runtime risk, direct path injection, and inconsistent logging practices.</td>
             <td>Lower maintainability and higher runtime surprise risk.</td>
           </tr>
           <tr>
             <td class="risk-low">Low</td>
             <td>Static analysis integration is incomplete.</td>
-            <td><code>README.md</code> still describes placeholder setup while <code>sonar-project.properties</code> retains commented/default content and minimal source scoping.</td>
+            <td>Static analysis setup remains partial, with placeholder-oriented documentation and limited scanning configuration.</td>
             <td>Code scanning signal is weaker than intended.</td>
           </tr>
         </tbody>
@@ -237,7 +237,7 @@
     <section class="card section">
       <h3>Security and governance view</h3>
       <ul>
-        <li><strong>Secrets management:</strong> partial use of secret indirection exists, but environment data and secret-related parameters should move fully to a managed secrets/config store.</li>
+        <li><strong>Secrets management:</strong> some secret indirection exists, but environment data and sensitive operational parameters should move fully to a managed secrets and configuration service.</li>
         <li><strong>Data control enforcement:</strong> the metadata model is promising, but bypass behavior and absence of policy-as-code validation reduce assurance.</li>
         <li><strong>Identity and access:</strong> no repo-visible IaC, RBAC policy, or environment promotion model was found, so access governance cannot be validated from source control.</li>
         <li><strong>Change governance:</strong> no repository-level ownership, contribution, or security response documentation was found.</li>
