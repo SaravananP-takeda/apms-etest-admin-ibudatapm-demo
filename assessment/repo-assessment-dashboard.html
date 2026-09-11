@@ -34,6 +34,7 @@
     .section { margin-top: 20px; }
     .section h3 { margin: 0 0 14px; font-size: 20px; }
     .card { padding: 22px; margin-bottom: 20px; }
+    .table-wrap { width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; vertical-align: top; padding: 12px; border-bottom: 1px solid var(--border); }
     th { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -98,6 +99,7 @@
 
     <section class="card section">
       <h3>Scorecard</h3>
+      <div class="table-wrap">
       <table>
         <caption class="small table-caption">
           Domain-level scorecard for repository design, platform engineering, code quality, security, and governance.
@@ -143,6 +145,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <section class="card section">
@@ -164,6 +167,7 @@
 
     <section class="card section">
       <h3>Priority findings</h3>
+      <div class="table-wrap">
       <table>
         <caption class="small table-caption">
           Prioritized findings with evidence and likely impact across the repository.
@@ -227,6 +231,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <section class="card section">
