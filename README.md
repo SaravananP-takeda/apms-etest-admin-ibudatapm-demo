@@ -1,5 +1,11 @@
 # apms-etest-admin-ibudatapm-demo
 
+## Repository assessment dashboard
+
+A downloadable architecture, code quality, security, and governance assessment is available at:
+
+- `assessment/repo-assessment-dashboard.html`
+
 ## SonarCloud setup
 
 This repository is configured for SonarCloud analysis via GitHub Actions.

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Repository Assessment Dashboard</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --good: #0f766e;
+      --warn: #b45309;
+      --bad: #b91c1c;
+      --border: #dbe3ef;
+      --accent: #1d4ed8;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 20px 56px; }
+    .hero, .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05); }
+    .hero { padding: 28px; margin-bottom: 20px; }
+    .hero h1 { margin: 0 0 8px; font-size: 28px; }
+    .hero p { margin: 6px 0; color: var(--muted); line-height: 1.5; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 20px 0; }
+    .score { padding: 18px; }
+    .score h2 { margin: 0; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .score .value { margin: 10px 0 0; font-size: 34px; font-weight: 700; }
+    .badge { display: inline-block; margin-top: 10px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .good { color: var(--good); background: #ccfbf1; }
+    .warn { color: var(--warn); background: #fef3c7; }
+    .bad { color: var(--bad); background: #fee2e2; }
+    .section { margin-top: 20px; }
+    .section h3 { margin: 0 0 14px; font-size: 20px; }
+    .card { padding: 22px; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; vertical-align: top; padding: 12px; border-bottom: 1px solid var(--border); }
+    th { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 6px 0; }
+    .small { font-size: 13px; color: var(--muted); }
+    .pill { display: inline-block; margin-right: 8px; margin-bottom: 8px; padding: 6px 10px; border-radius: 999px; background: #e0e7ff; color: #3730a3; font-size: 12px; font-weight: 700; }
+    .risk-high { color: var(--bad); font-weight: 700; }
+    .risk-medium { color: var(--warn); font-weight: 700; }
+    .risk-low { color: var(--good); font-weight: 700; }
+    code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Repository Architecture, Quality, Security & Governance Assessment</h1>
+      <p><strong>Repository:</strong> SaravananP-takeda/apms-etest-admin-ibudatapm-demo</p>
+      <p><strong>Assessment date:</strong> 2026-09-11</p>
+      <p><strong>Assessment scope:</strong> Static review of the Airflow orchestration layer, Databricks data quality framework, metadata-driven ingestion assets, and repository governance signals present in source control.</p>
+      <p><strong>Overall score:</strong> <span class="badge warn">4.8 / 10 — Moderate-to-high improvement required</span></p>
+      <div class="grid">
+        <div class="card score">
+          <h2>Design & Data Architecture</h2>
+          <div class="value">6.2</div>
+          <span class="badge warn">Partially mature</span>
+        </div>
+        <div class="card score">
+          <h2>Platform Engineering</h2>
+          <div class="value">5.4</div>
+          <span class="badge warn">Operationally fragile</span>
+        </div>
+        <div class="card score">
+          <h2>Code Quality</h2>
+          <div class="value">4.3</div>
+          <span class="badge bad">Low assurance</span>
+        </div>
+        <div class="card score">
+          <h2>Security</h2>
+          <div class="value">4.1</div>
+          <span class="badge bad">Control gaps</span>
+        </div>
+        <div class="card score">
+          <h2>Governance</h2>
+          <div class="value">4.0</div>
+          <span class="badge bad">Weak repo controls</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section">
+      <h3>Executive summary</h3>
+      <ul>
+        <li>The repository shows a valid <strong>metadata-driven ingestion pattern</strong> with Airflow orchestrating Databricks jobs and SQL metadata tables defining contracts and load strategies.</li>
+        <li>The current implementation is <strong>heavily configuration- and environment-specific</strong>, with large DAG files and parameter modules that reduce maintainability and increase change risk.</li>
+        <li>Quality assurance is <strong>insufficient</strong>: no real test suite is present, CI only contains a partial SonarCloud workflow, and notebooks are not backed by automated validation.</li>
+        <li>Security posture is <strong>below enterprise expectation</strong> for a data platform repository because sensitive operational values, email recipients, bucket names, and secret references are embedded in versioned code and governance artifacts are missing.</li>
+        <li>This repo can be used as a migration or operational asset, but it does <strong>not yet demonstrate production-grade engineering governance</strong> without stronger testing, policy controls, and deployment discipline.</li>
+      </ul>
+    </section>
+
+    <section class="card section">
+      <h3>Scorecard</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Score</th>
+            <th>What is working</th>
+            <th>Main gaps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Design & Data Architecture</td>
+            <td>6.2 / 10</td>
+            <td>Clear ingestion chain from source landing to post-contract and lake targets; metadata tables for entity master, load strategy, execution status, and error status.</td>
+            <td>Business logic is split between SQL metadata, notebooks, and large DAGs without a cohesive architecture contract or interface boundaries.</td>
+          </tr>
+          <tr>
+            <td>Platform Engineering</td>
+            <td>5.4 / 10</td>
+            <td>Airflow-to-Databricks orchestration exists, wildcard S3 resolution is handled, and environment-specific metadata folders are separated.</td>
+            <td>Monolithic DAG definitions, duplicated task wiring, direct path injection, and limited CI/CD automation create scaling and operability risk.</td>
+          </tr>
+          <tr>
+            <td>Code Quality</td>
+            <td>4.3 / 10</td>
+            <td>Dataclass-based contract model is a good foundation and contract checks are decomposed into functions.</td>
+            <td>No automated tests, inconsistent style, use of <code>print</code>, typo-level defects, and limited packaging discipline reduce confidence.</td>
+          </tr>
+          <tr>
+            <td>Security</td>
+            <td>4.1 / 10</td>
+            <td>Some secrets are referenced indirectly via Airflow variables.</td>
+            <td>Operational identifiers and secret-related placeholders remain in code; bypass flags, direct SMTP use, and lack of explicit security policy weaken controls.</td>
+          </tr>
+          <tr>
+            <td>Governance</td>
+            <td>4.0 / 10</td>
+            <td>Basic GitHub Actions and SonarCloud scaffolding exist.</td>
+            <td>No visible CODEOWNERS, CONTRIBUTING, SECURITY, or license files; no evidence of required review, test, or release controls in repo assets.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card section">
+      <h3>Strengths observed</h3>
+      <div>
+        <span class="pill">Metadata-driven ingestion</span>
+        <span class="pill">Airflow orchestration</span>
+        <span class="pill">Databricks DQ framework</span>
+        <span class="pill">Execution/error audit tables</span>
+        <span class="pill">Environment-separated metadata</span>
+      </div>
+      <ul>
+        <li><code>Databricks/cdp1_framework/metadata/DEV/01_create_metadata_tables.sql</code> defines control tables that support ingestion contracting and auditability.</li>
+        <li><code>Databricks/cdp1_framework/src/cdp_dq_framework/models.py</code> centralizes contract parsing into an explicit model.</li>
+        <li><code>Databricks/cdp1_framework/src/cdp_dq_framework/contract.py</code> shows reusable rule checks for mandatory fields, dates, duplicates, numeric validation, and keys.</li>
+        <li><code>Airflow/dags/DA_COM_GEM_VN_COMMON.py</code> includes a practical S3 wildcard resolution callback that improves file-arrival handling.</li>
+      </ul>
+    </section>
+
+    <section class="card section">
+      <h3>Priority findings</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Finding</th>
+            <th>Evidence</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="risk-high">High</td>
+            <td>No automated tests for production code or DAG behavior.</td>
+            <td><code>Databricks/cdp1_framework/src/pyproject.toml</code> defines optional test dependencies, but the repo has no test files; <code>.github/workflows/sonarcloud.yml</code> comments out test execution.</td>
+            <td>Low release confidence and high regression risk.</td>
+          </tr>
+          <tr>
+            <td class="risk-high">High</td>
+            <td>Operational and secret-adjacent values are embedded in versioned configuration.</td>
+            <td><code>Airflow/dags/parameters/DA_COM_GEM_VN_PARAMETERS.py</code> stores recipient lists, bucket names, notebook paths, IDs, and placeholders such as <code>client_secret</code>.</td>
+            <td>Increased exposure, poor separation of duties, and harder environment rotation.</td>
+          </tr>
+          <tr>
+            <td class="risk-high">High</td>
+            <td>Large hand-authored DAGs are difficult to review and maintain.</td>
+            <td><code>Airflow/dags/DA-COM-GEM-VN.py</code> is a very large generated-style DAG with many repeated operator definitions and inline environment branching.</td>
+            <td>Higher defect rate, slower delivery, and weak change isolation.</td>
+          </tr>
+          <tr>
+            <td class="risk-medium">Medium</td>
+            <td>Contract validation can be bypassed by metadata flag.</td>
+            <td><code>Databricks/cdp1_framework/src/cdp_dq_framework/contract.py</code> exits early when <code>no_validation_flag</code> is set.</td>
+            <td>Potential ingestion of unvalidated data without compensating controls visible in repo.</td>
+          </tr>
+          <tr>
+            <td class="risk-medium">Medium</td>
+            <td>Scalability and memory risks exist in the Databricks utility layer.</td>
+            <td><code>Databricks/cdp1_framework/src/cdp_dq_framework/utils.py</code> converts Parquet to pandas via <code>toPandas()</code> and rehydrates to Spark.</td>
+            <td>Potential driver memory pressure and poor large-file handling.</td>
+          </tr>
+          <tr>
+            <td class="risk-medium">Medium</td>
+            <td>Repository governance artifacts are missing.</td>
+            <td>No visible <code>CODEOWNERS</code>, <code>CONTRIBUTING.md</code>, <code>SECURITY.md</code>, or license file in the repository root or <code>.github</code>.</td>
+            <td>Weak review accountability, onboarding clarity, and policy communication.</td>
+          </tr>
+          <tr>
+            <td class="risk-medium">Medium</td>
+            <td>Codebase contains style and defect indicators.</td>
+            <td><code>Databricks/cdp1_framework/src/cdp_dq_framework/utils.py</code> contains a probable typo <code>laod(file_path)</code>; multiple modules rely on <code>print</code> and <code>sys.path.insert</code>.</td>
+            <td>Lower maintainability and higher runtime surprise risk.</td>
+          </tr>
+          <tr>
+            <td class="risk-low">Low</td>
+            <td>Static analysis integration is incomplete.</td>
+            <td><code>README.md</code> still describes placeholder setup while <code>sonar-project.properties</code> retains commented/default content and minimal source scoping.</td>
+            <td>Code scanning signal is weaker than intended.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card section">
+      <h3>Security and governance view</h3>
+      <ul>
+        <li><strong>Secrets management:</strong> partial use of secret indirection exists, but environment data and secret-related parameters should move fully to a managed secrets/config store.</li>
+        <li><strong>Data control enforcement:</strong> the metadata model is promising, but bypass behavior and absence of policy-as-code validation reduce assurance.</li>
+        <li><strong>Identity and access:</strong> no repo-visible IaC, RBAC policy, or environment promotion model was found, so access governance cannot be validated from source control.</li>
+        <li><strong>Change governance:</strong> no repository-level ownership, contribution, or security response documentation was found.</li>
+        <li><strong>Auditability:</strong> metadata audit tables are a positive sign, but CI evidence, deployment evidence, and approval gates are not represented in the repository.</li>
+      </ul>
+    </section>
+
+    <section class="card section">
+      <h3>Recommended next actions</h3>
+      <ol>
+        <li>Refactor Airflow DAG generation into reusable factories or metadata-driven templates and reduce direct task-by-task duplication.</li>
+        <li>Externalize all environment-specific parameters, recipients, bucket names, notebook paths, and operational IDs into managed configuration and secrets systems.</li>
+        <li>Introduce a real automated test baseline: unit tests for contract parsing/checks, DAG import validation, and notebook or job-level smoke tests.</li>
+        <li>Enable CI quality gates beyond placeholder Sonar setup, including test execution, linting, import validation, and packaging checks.</li>
+        <li>Define governance artifacts: CODEOWNERS, SECURITY.md, CONTRIBUTING.md, release/versioning guidance, and architectural decision records.</li>
+        <li>Review DQ bypass paths and require explicit approvals or compensating controls before unvalidated data can land in curated zones.</li>
+        <li>Remove pandas driver conversions where scalable Spark-native implementations are practical.</li>
+      </ol>
+    </section>
+
+    <section class="card section">
+      <h3>Assessment limitations</h3>
+      <p class="small">This assessment is based only on repository contents available in source control. Runtime controls, cloud IAM, Databricks workspace permissions, Airflow connection hardening, branch protection settings, and deployed monitoring posture were not directly observable here.</p>
+    </section>
+  </div>
+</body>
+</html>
