@@ -40,6 +40,7 @@
     ul { margin: 0; padding-left: 18px; }
     li { margin: 6px 0; }
     .small { font-size: 13px; color: var(--muted); }
+    .table-caption { caption-side: top; text-align: left; padding: 0 0 12px 0; }
     .pill { display: inline-block; margin-right: 8px; margin-bottom: 8px; padding: 6px 10px; border-radius: 999px; background: #e0e7ff; color: #3730a3; font-size: 12px; font-weight: 700; }
     .risk-high { color: var(--bad); font-weight: 700; }
     .risk-medium { color: var(--warn); font-weight: 700; }
@@ -98,7 +99,7 @@
     <section class="card section">
       <h3>Scorecard</h3>
       <table>
-        <caption class="small" style="caption-side: top; text-align: left; padding: 0 0 12px 0;">
+        <caption class="small table-caption">
           Domain-level scorecard for repository design, platform engineering, code quality, security, and governance.
         </caption>
         <thead>
@@ -164,7 +165,7 @@
     <section class="card section">
       <h3>Priority findings</h3>
       <table>
-        <caption class="small" style="caption-side: top; text-align: left; padding: 0 0 12px 0;">
+        <caption class="small table-caption">
           Prioritized findings with evidence and likely impact across the repository.
         </caption>
         <thead>
