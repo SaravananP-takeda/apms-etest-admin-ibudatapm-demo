@@ -28,6 +28,7 @@
     .score h2 { margin: 0; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
     .score .value { margin: 10px 0 0; font-size: 34px; font-weight: 700; }
     .badge { display: inline-block; margin-top: 10px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 2px solid currentColor; }
+    .status-label { font-weight: 800; letter-spacing: 0.04em; }
     .good { color: #134e4a; background: #ccfbf1; border-style: dotted; }
     .warn { color: #78350f; background: #fde68a; border-style: dashed; }
     .bad { color: #7f1d1d; background: #fecaca; border-style: solid; }
@@ -56,32 +57,32 @@
       <p><strong>Repository:</strong> This report is specific to the current repository snapshot under review.</p>
       <p><strong>Assessment date:</strong> 2026-09-11</p>
       <p><strong>Assessment scope:</strong> Static review of the Airflow orchestration layer, Databricks data quality framework, metadata-driven ingestion assets, and repository governance signals present in source control.</p>
-      <p><strong>Overall score:</strong> <span class="badge warn"><span aria-hidden="true">⚠ </span>Status: Warning — 4.8 / 10 — Moderate-to-high improvement required</span></p>
+      <p><strong>Overall score:</strong> <span class="badge warn"><span aria-hidden="true">⚠ </span><span class="status-label">[WARNING]</span> 4.8 / 10 — Moderate-to-high improvement required</span></p>
       <div class="grid">
         <div class="card score">
           <h2>Design & Data Architecture</h2>
           <div class="value">6.2</div>
-          <span class="badge warn"><span aria-hidden="true">⚠ </span>Status: Warning — Partially mature</span>
+          <span class="badge warn"><span aria-hidden="true">⚠ </span><span class="status-label">[WARNING]</span> Partially mature</span>
         </div>
         <div class="card score">
           <h2>Platform Engineering</h2>
           <div class="value">5.4</div>
-          <span class="badge warn"><span aria-hidden="true">⚠ </span>Status: Warning — Operationally fragile</span>
+          <span class="badge warn"><span aria-hidden="true">⚠ </span><span class="status-label">[WARNING]</span> Operationally fragile</span>
         </div>
         <div class="card score">
           <h2>Code Quality</h2>
           <div class="value">4.3</div>
-          <span class="badge bad"><span aria-hidden="true">✖ </span>Status: Critical — Low assurance</span>
+          <span class="badge bad"><span aria-hidden="true">✖ </span><span class="status-label">[CRITICAL]</span> Low assurance</span>
         </div>
         <div class="card score">
           <h2>Security</h2>
           <div class="value">4.1</div>
-          <span class="badge bad"><span aria-hidden="true">✖ </span>Status: Critical — Control gaps</span>
+          <span class="badge bad"><span aria-hidden="true">✖ </span><span class="status-label">[CRITICAL]</span> Control gaps</span>
         </div>
         <div class="card score">
           <h2>Governance</h2>
           <div class="value">4.0</div>
-          <span class="badge bad"><span aria-hidden="true">✖ </span>Status: Critical — Weak repo controls</span>
+          <span class="badge bad"><span aria-hidden="true">✖ </span><span class="status-label">[CRITICAL]</span> Weak repo controls</span>
         </div>
       </div>
     </section>
