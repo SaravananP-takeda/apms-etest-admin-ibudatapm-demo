@@ -114,31 +114,31 @@
         </thead>
         <tbody>
           <tr>
-            <td>Design & Data Architecture</td>
+            <th scope="row">Design & Data Architecture</th>
             <td>6.2 / 10</td>
             <td>Clear ingestion chain from source landing to post-contract and lake targets; metadata tables for entity master, load strategy, execution status, and error status.</td>
             <td>Business logic is split between SQL metadata, notebooks, and large DAGs without a cohesive architecture contract or interface boundaries.</td>
           </tr>
           <tr>
-            <td>Platform Engineering</td>
+            <th scope="row">Platform Engineering</th>
             <td>5.4 / 10</td>
             <td>Airflow-to-Databricks orchestration exists, wildcard S3 resolution is handled, and environment-specific metadata folders are separated.</td>
             <td>Monolithic DAG definitions, duplicated task wiring, direct path injection, and limited CI/CD automation create scaling and operability risk.</td>
           </tr>
           <tr>
-            <td>Code Quality</td>
+            <th scope="row">Code Quality</th>
             <td>4.3 / 10</td>
             <td>Dataclass-based contract model is a good foundation and contract checks are decomposed into functions.</td>
             <td>No automated tests, inconsistent style, use of <code>print</code>, typo-level defects, and limited packaging discipline reduce confidence.</td>
           </tr>
           <tr>
-            <td>Security</td>
+            <th scope="row">Security</th>
             <td>4.1 / 10</td>
             <td>Some secrets are referenced indirectly via Airflow variables.</td>
             <td>Operational identifiers and secret-related placeholders remain in code; bypass flags, direct SMTP use, and lack of explicit security policy weaken controls.</td>
           </tr>
           <tr>
-            <td>Governance</td>
+            <th scope="row">Governance</th>
             <td>4.0 / 10</td>
             <td>Basic GitHub Actions and SonarCloud scaffolding exist.</td>
             <td>No visible CODEOWNERS, CONTRIBUTING, SECURITY, or license files; no evidence of required review, test, or release controls in repo assets.</td>
@@ -182,49 +182,49 @@
         </thead>
         <tbody>
           <tr>
-            <td class="risk-high">High</td>
+            <th scope="row" class="risk-high">High</th>
             <td>No automated tests for production code or DAG behavior.</td>
             <td>The repository declares test dependencies, but no real test suite is present and CI does not execute tests.</td>
             <td>Low release confidence and high regression risk.</td>
           </tr>
           <tr>
-            <td class="risk-high">High</td>
+            <th scope="row" class="risk-high">High</th>
             <td>Operational and secret-adjacent values are embedded in versioned configuration.</td>
             <td>Environment-specific configuration modules include operational recipients, storage locations, job references, and secret-adjacent placeholders in versioned source.</td>
             <td>Increased exposure, poor separation of duties, and harder environment rotation.</td>
           </tr>
           <tr>
-            <td class="risk-high">High</td>
+            <th scope="row" class="risk-high">High</th>
             <td>Large hand-authored DAGs are difficult to review and maintain.</td>
             <td>The main orchestration layer contains large generated-style DAG definitions with repeated operator wiring and inline environment branching.</td>
             <td>Higher defect rate, slower delivery, and weak change isolation.</td>
           </tr>
           <tr>
-            <td class="risk-medium">Medium</td>
+            <th scope="row" class="risk-medium">Medium</th>
             <td>Contract validation can be bypassed by metadata flag.</td>
             <td>The contract validation layer supports a metadata-driven bypass path that can skip checks entirely.</td>
             <td>Potential ingestion of unvalidated data without compensating controls visible in repo.</td>
           </tr>
           <tr>
-            <td class="risk-medium">Medium</td>
+            <th scope="row" class="risk-medium">Medium</th>
             <td>Scalability and memory risks exist in the Databricks utility layer.</td>
             <td>The utility layer performs dataframe conversions through a driver-side in-memory step before returning data to Spark.</td>
             <td>Potential driver memory pressure and poor large-file handling.</td>
           </tr>
           <tr>
-            <td class="risk-medium">Medium</td>
+            <th scope="row" class="risk-medium">Medium</th>
             <td>Repository governance artifacts are missing.</td>
             <td>Key repository governance artifacts for ownership, contribution, security response, and licensing are not present.</td>
             <td>Weak review accountability, onboarding clarity, and policy communication.</td>
           </tr>
           <tr>
-            <td class="risk-medium">Medium</td>
+            <th scope="row" class="risk-medium">Medium</th>
             <td>Codebase contains style and defect indicators.</td>
             <td>The codebase shows defect indicators such as typo-level runtime risk, direct path injection, and inconsistent logging practices.</td>
             <td>Lower maintainability and higher runtime surprise risk.</td>
           </tr>
           <tr>
-            <td class="risk-low">Low</td>
+            <th scope="row" class="risk-low">Low</th>
             <td>Static analysis integration is incomplete.</td>
             <td>Static analysis setup remains partial, with placeholder-oriented documentation and limited scanning configuration.</td>
             <td>Code scanning signal is weaker than intended.</td>
