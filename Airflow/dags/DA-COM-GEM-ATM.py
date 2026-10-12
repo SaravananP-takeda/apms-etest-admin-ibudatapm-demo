@@ -31,14 +31,6 @@ from airflow.providers.http.operators.http import HttpOperator
 from airflow_servicenow_handler import notify_api_on_failure
 from airflow.utils.email import send_email
 
-# PARAMETERS module now lives in its own "parameters" subfolder under the DAGs
-# folder (alongside this file) instead of next to the DAG .py files - add it to
-# sys.path so the plain "from DA_COM_GEM_ATM_PARAMETERS_LAMBDA_v5 import ..." below still
-# resolves, regardless of how/whether Airflow puts the dags_folder itself on
-# sys.path. Resolved relative to this file's own directory so it works the
-# same locally and once synced into the Airflow DAGs folder from S3.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "parameters"))
-
 from DA_COM_GEM_ATM_PARAMETERS import (
     PARAMS_DICT,
     DATABRICKS_CONN_ID,
@@ -109,7 +101,7 @@ def globalscape_job_failure_error_occurred(context):
 
 def ATM_COMBINED_EXPORTS_TAKEDA_GLOBAL_SUCCESS_NEW(context):
 
-    email_to = ["premkumar.duraisamy@takeda.com;udayan.awasthi@takeda.com;arjun.dalal@takeda.com;dheeraj.jaiman@takeda.com;DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com"]
+    email_to = ["premkumar.duraisamy@takeda.com;dl.ibu.data.architecture.and.products.pod@takeda.com;DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com"]
     email_subject = "Combined Exports Takeda Global Data refresh completed for ATM"
     email_message = """Dear All,\n\nThe Combined Exports Takeda Global data has been refreshed successfully for ATM.\n\nThanks"""
 
@@ -121,7 +113,7 @@ def ATM_COMBINED_EXPORTS_TAKEDA_GLOBAL_SUCCESS_NEW(context):
 
 def ATM_COMBINED_EXPORTS_TAKEDA_GLOBAL_FAILURE_NEW(context):
 
-    email_to = ["premkumar.duraisamy@takeda.com;udayan.awasthi@takeda.com;arjun.dalal@takeda.com;dheeraj.jaiman@takeda.com;DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com"]
+    email_to = ["premkumar.duraisamy@takeda.com;dl.ibu.data.architecture.and.products.pod@takeda.com;DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com"]
     email_subject = "Combined Exports Takeda Global Data refresh failure for ATM"
     email_message = """Dear All,\n\nAttempts to refresh Combined Exports Takeda Global data for ATM Failed and the team is working to resolve.\n\nThanks"""
 
@@ -133,7 +125,7 @@ def ATM_COMBINED_EXPORTS_TAKEDA_GLOBAL_FAILURE_NEW(context):
 
 def ATM_HSS_DATA_SUCCESS(context):
 
-    email_to = ["premkumar.duraisamy@takeda.com;udayan.awasthi@takeda.com;arjun.dalal@takeda.com;dheeraj.jaiman@takeda.com;DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com"]
+    email_to = ["premkumar.duraisamy@takeda.com;dl.ibu.data.architecture.and.products.pod@takeda.com;DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com"]
     email_subject = "HSS Data refresh completed for ATM"
     email_message = """Dear All,\n\nThe Healthcare System Strengthening data has been refreshed successfully for ATM.\n\nThanks"""
 
@@ -145,7 +137,7 @@ def ATM_HSS_DATA_SUCCESS(context):
 
 def ATM_HSS_DATA_FAILURE(context):
 
-    email_to = ["premkumar.duraisamy@takeda.com;udayan.awasthi@takeda.com;arjun.dalal@takeda.com;dheeraj.jaiman@takeda.com;DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com"]
+    email_to = ["premkumar.duraisamy@takeda.com;dl.ibu.data.architecture.and.products.pod@takeda.com;DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com"]
     email_subject = "HSS Data refresh failed for ATM"
     email_message = """Dear All,\n\nAttempts to refresh Healthcare System Strengthening data  for ATM failed and the team is working to resolve.\n\nThanks"""
 

@@ -28,7 +28,6 @@ from airflow.providers.http.operators.http import HttpOperator
 from airflow_servicenow_handler import notify_api_on_failure
 from airflow.utils.email import send_email
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "parameters"))
 
 from DA_COM_GEM_VN_PARAMETERS import PARAMS_DICT, EMAIL_RECIPIENTS, CHILD_DAG_IDS, POOLS, SENSOR_POKE_INTERVAL_SECONDS, SENSOR_TIMEOUT_SECONDS
 from DA_COM_GEM_VN_COMMON import (

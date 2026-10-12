@@ -3,9 +3,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from io import BytesIO
-from pyspark.sql.types import StructType, StructField, StringType
-from pyspark.sql.functions import col
-from pyspark.sql import Window
 import pandas as pd
 
 # longest-filename-prefix match (port of read_db.get_data_frm_db)
@@ -50,13 +47,13 @@ def read_csv(spark, file_path, contract, read_purpose, service_type):
             dtype=str,
             na_values=['null', '']
         )
-        df = spark.createDataFrame(df.astype(str))
+        df = spark.createDataFrame(df.fillna("").astype(str))
     return df
 
 def read_excel(spark, file_path, contract, read_purpose, service_type):
     if service_type == "INF":
         if read_purpose == "contract_check":
-            df = spark.read.format("excel").option("header", "true" if contract.header_flag else "false").laod(file_path)
+            df = spark.read.format("excel").option("header", "true" if contract.header_flag else "false").load(file_path)
             if not contract.header_flag and contract.mandatory_col_list:
                 df = df.toDF(*contract.mandatory_col_list)
         elif read_purpose == "lake_load":    
@@ -82,9 +79,12 @@ def read_excel(spark, file_path, contract, read_purpose, service_type):
         df = pd.read_excel(
             BytesIO(file_bytes),
             names=column_names,
+            parse_dates=contract.date_col_list if contract.date_flag else False,
+            date_format=contract.date_formats,
             header=0 if contract.header_flag else None,
             keep_default_na=False,
-            skiprows=int(contract.skiprows) if contract.skiprows else 0,
+            skiprows=contract.skiprows if contract.skiprows else 0,
+            dtype=str,
             engine='openpyxl'
         )
         df = spark.createDataFrame(df.fillna("").astype(str))

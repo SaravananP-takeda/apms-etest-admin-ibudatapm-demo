@@ -45,33 +45,35 @@ def strip_glob(p):
 
 def check_mandatory_columns(df, c, result, df_cols):
     # legacy: every mandatory col must exist (case-insensitive) and contain no null/empty
+    check_name = "Mandatory Columns check"
     if not c.mandatory_col_flag or not c.mandatory_col_list: return
-    print("Mandatory Columns check in progress..")
+    print(f"{check_name} in progress..")
     lower = {col.casefold(): col for col in df_cols}
     missing = [k for k in c.mandatory_col_list if k.casefold() not in lower]
     if missing:
-        print("Mandatory Columns check failed!")
-        result.add("Mandatory Columns check", "FAILED" , f"Missing mandatory columns: {missing}")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED" , f"Missing mandatory columns: {missing}")
     else:
-        print("Mandatory Columns check passed!")
-        result.add("Mandatory Columns check", "SUCCESS", "")
+        print(f"{check_name} passed!")
+        result.add(check_name, "SUCCESS", "")
 
 def check_date_formats(df, c, result, df_cols):
     # legacy: every date col must exist (case-insensitive) and contain no null/empty
+    check_name = "Date Contract check"
     if not c.date_flag or not c.date_col_list: return
-    print("Date Contract check in progress..")
+    print(f"{check_name} in progress..")
     lower = {col.casefold(): col for col in df_cols}
     missing = [k for k in c.date_col_list if k.casefold() not in lower]
     if missing:
-        print("Date Contract check failed!")
-        result.add("Date Contract check", "FAILED", f"Missing date columns: {missing}")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED", f"Missing date columns: {missing}")
         return
     nulls = [lower[k.casefold()] for k in c.date_col_list
            if df.filter(F.col(lower[k.casefold()]).isNull() | 
                         (F.trim(F.col(lower[k.casefold()]))==F.lit(""))).limit(1).count()]
     if nulls:
-        print("Date Contract check failed!")
-        result.add("Date Contract check" , "FAILED", f"Null/empty values in {nulls}")
+        print(f"{check_name} failed!")
+        result.add(check_name , "FAILED", f"Null/empty values in {nulls}")
         return
     invalid = []
     for date_col in c.date_col_list:
@@ -83,39 +85,42 @@ def check_date_formats(df, c, result, df_cols):
         if invalid_count:
             invalid.append(actual_col)
     if invalid:
-        print("Date Contract check failed!")
-        result.add("Date Contract check", "FAILED", f"Invalid date format in columns {invalid}")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED", f"Invalid date format in columns {invalid}")
     else:
-        print("Date Contract check passed!")
-        result.add("Date Contract check", "SUCCESS", "")
+        print(f"{check_name} passed!")
+        result.add(check_name, "SUCCESS", "")
 
 def check_filename(file_name, c, result):
     # legacy: every file must have a valid filename
+    check_name = "File Name check"
     if not c.filename_flag or not c.filename_pattern: return
-    print("File Name check in progress..")
+    print(f"{check_name} in progress..")
     if strip_glob(c.filename_pattern).casefold() in file_name.casefold():
-        print("File Name check passed!")
-        result.add("File Name check", "SUCCESS", "")
+        print(f"{check_name} passed!")
+        result.add(check_name, "SUCCESS", "")
     else:
-        print("File Name check failed!")
-        result.add("File Name check", "FAILED", f"Expected file name in pattern {c.filename_pattern} but found {file_name}")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED", f"Expected file name in pattern {c.filename_pattern} but found {file_name}")
 
 def check_file_extension(file_name, c, result):
     # legacy: every file must have a valid extension
+    check_name = "File Extension check"
     if not c.filename_flag or not c.filename_pattern: return
-    print("File Extension check in progress..")
+    print(f"{check_name} in progress..")
     file_ext = c.filename_pattern.split(".")[1]
     if file_name.casefold().endswith(file_ext.casefold()):
-        print("File Extension check passed!")
-        result.add("File Extension check", "SUCCESS", "")
+        print(f"{check_name} passed!")
+        result.add(check_name, "SUCCESS", "")
     else:
-        print("File Extension check failed!")
-        result.add("File Extension check", "FAILED", f"Expected {file_name} with a valid extension")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED", f"Expected {file_name} with a valid extension")
 
 def check_decimal_values(df, c, result, df_cols):
     # incl. mainframe trailing-minus '123-'
+    check_name = "Decimal Value check"
     if not c.decimal_flag or not c.decimal_col_list: return
-    print("Decimal Value check in progress..")
+    print(f"{check_name} in progress..")
     lower = {col.casefold(): col for col in df_cols}
     failed = []
     for dcol in c.decimal_col_list:
@@ -128,59 +133,62 @@ def check_decimal_values(df, c, result, df_cols):
         if df.filter(~((val==F.lit(""))|val.isNull()|norm.cast("double").isNotNull())).limit(1).count():
             failed.append(real) 
     if failed:
-        print("Decimal Value check failed!")
-        result.add("Decimal Value check", "FAILED", f"Invalid decimal columns: {failed}")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED", f"Invalid decimal columns: {failed}")
     else:
-        print("Decimal Value check passed!")
-        result.add("Decimal Value check", "SUCCESS", "")
+        print(f"{check_name} passed!")
+        result.add(check_name, "SUCCESS", "")
 
 def check_key_columns(df, c, result, df_cols):
     # legacy: every key col must exist (case-insensitive) and contain no null/empty
+    check_name = "Key Columns check"
     if not c.key_col_flag or not c.key_col_list: return
-    print("Key Columns check in progress..")
+    print(f"{check_name} in progress..")
     lower = {col.casefold(): col for col in df_cols}
     missing = [k for k in c.key_col_list if k.casefold() not in lower]
     if missing:
-        print("Key Columns check failed!")
-        result.add("Key Columns check", "FAILED", f"Missing Key columns: {missing}")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED", f"Missing Key columns: {missing}")
         return
     # Check if key column value is NULL or empty
     invalid = [lower[k.casefold()] for k in c.key_col_list
            if df.filter(F.col(lower[k.casefold()]).isNull() | (F.trim(F.col(lower[k.casefold()]))==F.lit(""))).limit(1).count()]
     if invalid:
-        print("Key Columns check failed!")
-        result.add("Key Columns check", "FAILED", f"Null/empty values in {invalid}")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED", f"Null/empty values in {invalid}")
     else:
-        print("Key Columns check passed!")
-        result.add("Key Columns check", "SUCCESS", "")
+        print(f"{check_name} passed!")
+        result.add(check_name, "SUCCESS", "")
 
 def check_num_columns(df, c, result, df_cols):
     # legacy: every num col must exist (case-insensitive) and contain no null/empty
+    check_name = "Number of Columns check"
     if not c.num_cols_flag or not c.num_cols_expected: return
-    print("Number of Columns check in progress..")
-    equality = int(c.num_cols_expected) == len(df_cols)
-    print(f"No. of columns expected: {int(c.num_cols_expected)}")
+    print(f"{check_name} in progress..")
+    equality = c.num_cols_expected == len(df_cols)
+    print(f"No. of columns expected: {c.num_cols_expected}")
     print(f"No. of columns found: {len(df_cols)}")
     if equality:
-        print("Number of Columns check passed!")
+        print(f"{check_name} passed!")
         result.add("Number of Columns check", "SUCCESS", "")
     else:
-        print("Number of Columns check failed!")
-        result.add("Number of Columns check", "FAILED", f"Expected {c.num_cols_expected} columns, but found {len(df_cols)} columns")
+        print(f"{check_name} failed!")
+        result.add(check_name, "FAILED", f"Expected {c.num_cols_expected} columns, but found {len(df_cols)} columns")
 
 def check_duplicates(df, c, result, df_cols):
     # legacy: pandas duplicated(subset)
+    check_name = "Duplicate check"
     if not c.duplicate_flag or not c.duplicate_key_list: return
-    print("Duplicate check in progress..")
+    print(f"{check_name} in progress..")
     lower = {col.casefold(): col for col in df_cols}
     cols = [lower.get(k.casefold(), k) for k in c.duplicate_key_list]
     total, distinct = df.count(), df.select(*cols).distinct().count()
     if total == distinct:
-        print("Duplicate check passed!")
-        result.add("Duplicate check", "SUCCESS", "")
+        print(f"{check_name} passed!")
+        result.add(check_name, "SUCCESS", "")
     else:
-        print("Duplicate check failed!")
-        result.add("Duplicate check", "FAILED", f"Expected {distinct} unique rows, but found total {total} rows")
+        print(f"{check_name}failed!")
+        result.add(check_name, "FAILED", f"Expected {distinct} unique rows, but found total {total} rows")
 
 def run_contract_checks(df, contract, file_name=""):
     """

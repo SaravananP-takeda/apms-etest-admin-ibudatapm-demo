@@ -1,0 +1,69 @@
+resources:
+  jobs:
+    cdp1_contract_lakeload:
+      name: cdp1_contract_lakeload
+      max_concurrent_runs: 100
+      tasks:
+        - task_key: derive_config
+          notebook_task:
+            notebook_path: /Workspace/GDDT-BDMTODBX/cdp1_framework/notebooks/derive_config
+            source: WORKSPACE
+          environment_key: cdp_dq_framework
+        - task_key: contract_checks
+          depends_on:
+            - task_key: derive_config
+          notebook_task:
+            notebook_path: /Workspace/GDDT-BDMTODBX/cdp1_framework/notebooks/contract_checks
+            source: WORKSPACE
+          environment_key: cdp_dq_framework
+        - task_key: contract_checks_gate
+          depends_on:
+            - task_key: contract_checks
+          condition_task:
+            op: EQUAL_TO
+            left: "{{tasks.contract_checks.values.should_proceed}}"
+            right: "true"
+        - task_key: lake_load
+          depends_on:
+            - task_key: contract_checks_gate
+              outcome: "true"
+          notebook_task:
+            notebook_path: /Workspace/GDDT-BDMTODBX/cdp1_framework/notebooks/lake_load
+            source: WORKSPACE
+          environment_key: cdp_dq_framework
+        - task_key: rejected_load
+          depends_on:
+            - task_key: contract_checks_gate
+              outcome: "false"
+          notebook_task:
+            notebook_path: /Workspace/GDDT-BDMTODBX/cdp1_framework/notebooks/rejected_load
+            source: WORKSPACE
+          environment_key: cdp_dq_framework
+      tags:
+        apms-id: APMS-92363
+        app: cdp
+        application-name: databricks
+        business-criticality: high
+        business-unit-n1: gddt
+        data-classification: confidential
+        environment-id: PROD
+      queue:
+        enabled: true
+      parameters:
+        - name: catalog
+          default: deprd_dataengineering
+        - name: schema
+          default: eds_us_lake_cdp
+        - name: service_credential
+          default: default_value
+      run_as:
+        service_principal_name: 11e20492-854b-420e-8c1e-8dd0296783a7
+      environments:
+        - environment_key: cdp_dq_framework
+          spec:
+            dependencies:
+              - /Workspace/GDDT-BDMTODBX/cdp1_framework/src/dist/cdp_dq_framework-1.0.0-py3-none-any.whl
+              - openpyxl==3.1.5
+            environment_version: "5"
+      budget_policy_id: 97ea84de-75a2-4999f-b5c7-49781cfd52c2
+      performance_target: PERFORMANCE_OPTIMIZED

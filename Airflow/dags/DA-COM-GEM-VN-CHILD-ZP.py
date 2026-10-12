@@ -8,9 +8,6 @@ from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
 
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "parameters"))
-
 from DA_COM_GEM_VN_PARAMETERS import PARAMS_DICT
 from DA_COM_GEM_VN_COMMON import (
     DATABRICKS_CONN_ID,

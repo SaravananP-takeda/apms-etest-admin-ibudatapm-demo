@@ -11,8 +11,6 @@ from botocore.exceptions import ClientError
 from airflow_servicenow_handler import notify_api_on_failure
 from airflow.utils.email import send_email
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "parameters"))
-
 from DA_COM_GEM_VN_PARAMETERS import EMAIL_RECIPIENTS, PARAMS_DICT, SNOW_ATTRIBUTES_DEFAULTS
 
 DATABRICKS_CONN_ID = "Databricks_BDMToDBX_Default"
