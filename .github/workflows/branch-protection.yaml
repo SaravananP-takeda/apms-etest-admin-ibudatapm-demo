@@ -1,0 +1,20 @@
+name: Branch Protection (from mono repo)
+
+on:
+  pull_request:
+    branches: [devops_test, devops_prod]
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  branch-protection:
+    uses: oneTakeda/apms-10612-admin-platform-backend-cicd/.github/workflows/cicd_workflow.yml@main
+    permissions:
+      contents: read
+      statuses: write
+      actions: read
+      security-events: write
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      is_pull_request: true

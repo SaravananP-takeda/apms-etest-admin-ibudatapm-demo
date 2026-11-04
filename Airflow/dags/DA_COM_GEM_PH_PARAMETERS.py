@@ -5,7 +5,7 @@ SSH_CONN_ID = "SSH_Default"
 
 EMAIL_RECIPIENTS = {
     "DEV": "astha.chaturvedi@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,dheeraj.jaiman@takeda.com",
-    "TEST": "astha.chaturvedi@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com,wajahat.khan@takeda.com,shraddha.singh@takeda.com",
+    "TEST": "astha.chaturvedi@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com,wajahat.khan@takeda.com,shraddha.singh@takeda.com,DL.IBU.Data.Architecture.And.Products.POD@takeda.com",
     "PROD": "DL.EDB.GEM.VN.COMM@takeda.com, DL.EDB.COMM.UAMS@takeda.com"
 }
 
@@ -14,8 +14,15 @@ POOLS = {
     "PH_POOL_2": "PH_POOL_2",
 }
 
-SENSOR_POKE_INTERVAL_SECONDS = 15 * 60
-SENSOR_TIMEOUT_SECONDS = 23 * 60 * 60 + 50 * 60
+# SENSOR_POKE_INTERVAL_SECONDS = 1 * 60
+# SENSOR_TIMEOUT_SECONDS = 25 * 60
+
+# S3 filewatch sensors (DAGs with lambda files): poll every 1 min, give up after 30 min
+S3_SENSOR_POKE_INTERVAL_SECONDS = 1 * 60
+S3_SENSOR_TIMEOUT_SECONDS = 25 * 60
+
+
+
 
 SNOW_ATTRIBUTES_DEFAULTS = {
     "configuration_item": "",

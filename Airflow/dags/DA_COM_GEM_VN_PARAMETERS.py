@@ -1,11 +1,11 @@
 EMAIL_RECIPIENTS = {
-    'DEV': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com',
-    'TEST': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com,wajahat.khan@takeda.com,shraddha.singh@takeda.com',
-    'PROD': 'DL.EDB.GEM.VN.COMM@takeda.com, DL.EDB.COMM.UAMS@takeda.com'
+    'DEV': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com,DL.IBU.Data.Architecture.Products.POD@takeda.com',
+    'TEST': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com,wajahat.khan@takeda.com,shraddha.singh@takeda.com,DL.IBU.Data.Architecture.Products.POD@takeda.com',
+    'PROD': 'DL.IBU.Data.Architecture.Products.POD@takeda.com,DL.EDB.GEM.VN.COMM@takeda.com, DL.EDB.COMM.UAMS@takeda.com'
 }
 
-SENSOR_POKE_INTERVAL_SECONDS = 15 * 60
-SENSOR_TIMEOUT_SECONDS = 23 * 60 * 60 + 50 * 60
+SENSOR_POKE_INTERVAL_SECONDS = 1 * 60
+SENSOR_TIMEOUT_SECONDS = 25 * 60
 
 SNOW_ATTRIBUTES_DEFAULTS = {
     "configuration_item": "Commercial Common Data Pipeline [EDB] - Production-AWS-Airflow-EU",

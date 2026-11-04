@@ -11,6 +11,8 @@ from botocore.exceptions import ClientError
 from airflow_servicenow_handler import notify_api_on_failure
 from airflow.utils.email import send_email
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "parameters"))
+
 from DA_COM_GEM_VN_PARAMETERS import EMAIL_RECIPIENTS, PARAMS_DICT, SNOW_ATTRIBUTES_DEFAULTS
 
 DATABRICKS_CONN_ID = "Databricks_BDMToDBX_Default"
@@ -141,6 +143,39 @@ def send_email_notification(context):
         )
     except Exception as e:
         print(f"Exception received while sending email notification : {e}" )
+
+def send_failure_email_notification(context):
+
+    ti = context["task_instance"]
+    dag_run = context["dag_run"]
+    exception = context.get("exception")
+
+    dag_id = ti.dag_id
+    job_name =  ti.task_display_name         # "job name"
+    task_id = ti.task_id                    # task id
+    run_id =  ti.run_id                      # "job id" - identifies the run
+    end_time = ti.end_date
+    end_time_str_format = end_time.strftime("%B %d, %Y at %I:%M:%S %p %Z")
+    error_message = str(exception) if exception else context.get("reason")
+
+    af_env = Variable.get("af_env")  # "DEV"
+    email_to = EMAIL_RECIPIENTS.get(af_env, [])  # EMAIL_RECIPIENTS defined in parameter file and imported
+    email_subject = "Job Failure:  " + dag_id + " " + job_name
+    email_message = ""
+    email_message +=  job_name +  " Failed at " + end_time_str_format
+    email_message += "<br>"
+    email_message += "DAG Name: " + dag_id
+    email_message += "<br>"
+    email_message += "DAG Run Id: " + run_id
+    email_message += "<br>"
+    email_message += "Error:" + "<br>"
+    email_message += error_message + "<br>"
+
+    print(f"email_message for Job Failure notfication is {email_message}")
+    context["email_to"] = email_to
+    context["email_subject"] = email_subject
+    context["email_message"] = email_message
+    send_email_notification(context)
 
 ####======================================================================================
 
@@ -276,6 +311,10 @@ def on_failure_callback_S3(context):
         logging.info(f"{LOG_PFX}AWS ClientError received for {task_id} job: {error_code}")
         print(f"AWS ClientError received for {task_id} job: {error_code}")
 
+        # Sending email failure notification
+        logging.info(f"{LOG_PFX}Sending Job Failure Email Notification")
+        send_failure_email_notification(context)
+
         handlers = on_success_completion_handlers.get(task_id, [])
         for handler in handlers:
             try:
@@ -317,6 +356,10 @@ def on_failure_callback_iics(context):
     logging.info(f"{LOG_PFX}Creating SNOW Incident for failed task {task_id}")
     svcnow_create_p3_incident(context)
 
+    # Sending email failure notification
+    logging.info(f"{LOG_PFX}Sending Job Failure Email Notification")
+    send_failure_email_notification(context)
+
     handlers = on_failure_abnormal_completion_handlers.get(task_id, [])
     for handler in handlers:
         try:
@@ -350,6 +393,10 @@ def on_failure_callback_dbx_lf_job(context):
 
     logging.info(f"{LOG_PFX}Creating SNOW Incident for failed task {task_id}")
     svcnow_create_p3_incident(context)
+
+    # Sending email failure notification
+    logging.info(f"{LOG_PFX}Sending Job Failure Email Notification")
+    send_failure_email_notification(context)
 
     handlers = on_failure_abnormal_completion_handlers.get(task_id, [])
     for handler in handlers:

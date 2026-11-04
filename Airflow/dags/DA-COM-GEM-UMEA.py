@@ -3,6 +3,7 @@ import os
 import logging
 import fnmatch
 from airflow import DAG
+from airflow.utils.task_group import TaskGroup
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
@@ -314,6 +315,39 @@ def send_email_notification(context):
     except Exception as e:
         print(f"Exception received while sending email notification : {e}" )
 
+def send_failure_email_notification(context):
+
+    ti = context["task_instance"]
+    dag_run = context["dag_run"]
+    exception = context.get("exception")
+
+    dag_id = ti.dag_id
+    job_name =  ti.task_display_name         # "job name"
+    task_id = ti.task_id                    # task id
+    run_id =  ti.run_id                      # "job id" - identifies the run
+    end_time = ti.end_date
+    end_time_str_format = end_time.strftime("%B %d, %Y at %I:%M:%S %p %Z")
+    error_message = str(exception) if exception else context.get("reason")
+
+    af_env = Variable.get("af_env")  # "DEV"
+    email_to = EMAIL_RECIPIENTS.get(af_env, [])  # EMAIL_RECIPIENTS defined in parameter file and imported
+    email_subject = "Job Failure:  " + dag_id + " " + job_name
+    email_message = ""
+    email_message +=  job_name +  " Failed at " + end_time_str_format
+    email_message += "<br>"
+    email_message += "DAG Name: " + dag_id
+    email_message += "<br>"
+    email_message += "DAG Run Id: " + run_id
+    email_message += "<br>"
+    email_message += "Error:" + "<br>"
+    email_message += error_message + "<br>"
+
+    print(f"email_message for Job Failure notfication is {email_message}")
+    context["email_to"] = email_to
+    context["email_subject"] = email_subject
+    context["email_message"] = email_message
+    send_email_notification(context)
+
 ####======================================================================================
 
 ####==============On Success/ On Failure Handlers for each Task Type======================
@@ -484,6 +518,10 @@ def on_failure_callback_S3(context):
         logging.info(f"{LOG_PFX}Creating SNOW Incident for failed task {task_id}")
         svcnow_create_p3_incident(context)
 
+        # Sending email failure notification
+        logging.info(f"{LOG_PFX}Sending Job Failure Email Notification")
+        send_failure_email_notification(context)
+
         handlers = on_failure_abnormal_completion_handlers.get(task_id, [])
         for handler in handlers:
             try:
@@ -534,6 +572,10 @@ def on_failure_callback_iics(context):
     logging.info(f"{LOG_PFX}Creating SNOW Incident for failed task {task_id}")
     svcnow_create_p3_incident(context)
 
+    # Sending email failure notification
+    logging.info(f"{LOG_PFX}Sending Job Failure Email Notification")
+    send_failure_email_notification(context)
+
     handlers = on_failure_abnormal_completion_handlers.get(task_id, [])
     for handler in handlers:
         try:
@@ -568,6 +610,10 @@ def on_failure_callback_dbx_lf_job(context):
     logging.info(f"{LOG_PFX}Creating SNOW Incident for failed task {task_id}")
     svcnow_create_p3_incident(context)
 
+    # Sending email failure notification
+    logging.info(f"{LOG_PFX}Sending Job Failure Email Notification")
+    send_failure_email_notification(context)
+
     handlers = on_failure_abnormal_completion_handlers.get(task_id, [])
     for handler in handlers:
         try:
@@ -600,7 +646,7 @@ dag = DAG(
     dag_id = "DA-COM-GEM-UMEA",
     description = "Was moved by EU-PROD-TO-EU-PROD-REPO from EU-PROD-CONN (20.25.2) to EU-PROD-REPOSITORY (Latest) by onetakeda\cef9990 on 04/22/2026 06:45:57 PM -- Deployed from DEFRATAGAPT001 by zye7443 on 10/04/2023 06:53:29 AM -- Updated from DEFRATAGAPT001 by zye7443 on 10/04/2023 07:31:15 AM",
     default_args = def_args,
-    schedule_interval = "0 0 * * *",
+    schedule_interval = "*/30 * * * *",
     concurrency = 16,
     start_date = CET.localize(datetime(2026,6,29)),
     catchup = False,
@@ -609,77 +655,14 @@ dag = DAG(
 
 # ---- Variable-dependency check sensors (9) ----
 
-A630252_DEP_CHECK = PythonSensor (task_id = "UMEA-ACCOUNT-MAPPING-DEPCHECK",
-                                  task_display_name = "UMEA-ACCOUNT-MAPPING-DEPCHECK",
-                                  python_callable = check_variable_dependency("UMEA-ACCOUNT-MAPPING-LAKELOAD"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
-A629657_DEP_CHECK = PythonSensor (task_id = "UMEA-COUNTRY-MAPPING-DEPCHECK",
-                                  task_display_name = "UMEA-COUNTRY-MAPPING-DEPCHECK",
-                                  python_callable = check_variable_dependency("UMEA-COUNTRY-MAPPING-LAKELOAD"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
-A628321_DEP_CHECK = PythonSensor (task_id = "UMEA-DISTRIBUTOR-PRODUCT-MAPPING-DEPCHECK",
-                                  task_display_name = "UMEA-DISTRIBUTOR-PRODUCT-MAPPING-DEPCHECK",
-                                  python_callable = check_variable_dependency("UMEA-DISTRIBUTOR-PRODUCT-MAPPING-LAKELOAD"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
-A598925_DEP_CHECK = PythonSensor (task_id = "UMEA-DISTRIBUTOR-SALES-DEPCHECK",
-                                  task_display_name = "UMEA-DISTRIBUTOR-SALES-DEPCHECK",
-                                  python_callable = check_variable_dependency("UMEA-DISTRIBUTOR-SALES-LAKELOAD"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
-A625269_DEP_CHECK = PythonSensor (task_id = "UMEA-PRICE-DEPCHECK",
-                                  task_display_name = "UMEA-PRICE-DEPCHECK",
-                                  python_callable = check_variable_dependency("UMEA-PRICE-LAKELOAD"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
-A612098_DEP_CHECK = PythonSensor (task_id = "UMEA-TARGET-SALES-DEPCHECK",
-                                  task_display_name = "UMEA-TARGET-SALES-DEPCHECK",
-                                  python_callable = check_variable_dependency("UMEA-TARGET-SALES-LAKELOAD"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
-A614276_DEP_CHECK = PythonSensor (task_id = "UMEA-ACCOUNT-LEAD-CONTRIBUTION-DEPCHECK",
-                                  task_display_name = "UMEA-ACCOUNT-LEAD-CONTRIBUTION-DEPCHECK",
-                                  python_callable = check_variable_dependency("UMEA-ACCOUNT-LEAD-CONTRIBUTION-LAKELOAD"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
-A609983_DEP_CHECK = PythonSensor (task_id = "DEP_CHECK_609983_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA",
-                                  task_display_name = "Dependency Check - 006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA",
-                                  python_callable = check_variable_dependency("609983_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
-A607462_DEP_CHECK = PythonSensor (task_id = "DEP_CHECK_607462_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA",
-                                  task_display_name = "Dependency Check - 005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA",
-                                  python_callable = check_variable_dependency("607462_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA"),
-                                  poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-                                  timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-                                  mode = "reschedule",
-                                  dag = dag)
 
 
 def test_function():
@@ -687,678 +670,725 @@ def test_function():
     return True
 
 
+def make_s3_filewatch(task_id):
+    return S3KeySensor(
+        task_id=task_id,
+        task_display_name=task_id,
+        bucket_name=params[af_env][task_id]["bucket_name"],
+        bucket_key=params[af_env][task_id]["bucket_key"],
+        aws_conn_id="aws_default",
+        wildcard_match=True,
+        poke_interval=S3_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3,
+        on_success_callback=on_success_callback_S3,
+        dag=dag,
+    )
+
+
+def make_lakeload(task_id, filewatch_task_id, task_display_name=None):
+    job_parameters = dict(params[af_env][task_id]["job_parameters"])
+    if "*" in params[af_env][filewatch_task_id]["bucket_key"]:
+        job_parameters["bucket_key"] = (
+            f"{{{{ ti.xcom_pull(task_ids='{filewatch_task_id}', key='resolved_key') }}}}"
+        )
+    return DatabricksRunNowOperator(
+        task_id=task_id,
+        task_display_name=task_display_name or task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][task_id]["job_id"],
+        json={"job_parameters": job_parameters},
+        execution_timeout=timedelta(minutes=60),
+        on_failure_callback=on_failure_callback_dbx_lf_job,
+        on_success_callback=on_success_callback_dbx_lf_job,
+        dag=dag,
+    )
+
+
+def make_dep_check(task_id, dependency_key, task_display_name=None):
+    return PythonSensor(
+        task_id=task_id,
+        task_display_name=task_display_name or task_id,
+        python_callable=check_variable_dependency(dependency_key),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag,
+    )
+
+
+
 # Jobs
-A593330_SUCCESS = DummyOperator (task_id = "593330.SUCCESS",
-                                 task_display_name = "61156.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-A602671_SUCCESS = DummyOperator (task_id = "602671.SUCCESS",
-                                 task_display_name = "56409.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-A605672 = PythonOperator (task_id = "605672_020-ASSOCIATED-CALLBACK-JOB-MONITOR-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                          python_callable = test_function, task_display_name = "56455_020-ASSOCIATED-CALLBACK-JOB-MONITOR-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                          execution_timeout = timedelta(minutes=60), dag = dag)
 
-_task_id = "UMEA-TARGET-SALES-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["UMEA-TARGET-SALES-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='UMEA-TARGET-SALES-FILEWATCH', key='resolved_key') }}"
-A612098 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "UMEA-TARGET-SALES-LAKELOAD",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": _job_parameters},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-_task_id = "UMEA-DISTRIBUTOR-SALES-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["UMEA-DISTRIBUTOR-SALES-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='UMEA-DISTRIBUTOR-SALES-FILEWATCH', key='resolved_key') }}"
-A598925 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "UMEA-DISTRIBUTOR-SALES-LAKELOAD",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": _job_parameters},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 # A629600 = PythonOperator (task_id = "629600_003-UMEA-HUBTOMART-REF-CUSTOMER-MAP", python_callable = test_function, task_display_name = "56402_003-UMEA-HUBTOMART-REF-CUSTOMER-MAP", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "629600_003-UMEA-HUBTOMART-REF-CUSTOMER-MAP"
-A629600 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56402_003-UMEA-HUBTOMART-REF-CUSTOMER-MAP",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 
 
 
-A613709_SUCCESS = DummyOperator (task_id = "613709.SUCCESS",
-                                 task_display_name = "56451.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
-
-A611564_SUCCESS = DummyOperator (task_id = "611564.SUCCESS",
-                                 task_display_name = "56447.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
-
-A610880 = PythonOperator (task_id = "610880_010-SHOW-DATABRICKS-JOB-STATUS-UMEA-FILE-VALIDATION-EMAIL",
-                          python_callable = test_function,
-                          task_display_name = "56456_010-SHOW-DATABRICKS-JOB-STATUS-UMEA-FILE-VALIDATION-EMAIL",
-                          execution_timeout = timedelta(minutes=60), dag = dag)
 
 
-_task_id = "UMEA-ACCOUNT-LEAD-CONTRIBUTION-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["UMEA-ACCOUNT-LEAD-CONTRIBUTION-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='UMEA-ACCOUNT-LEAD-CONTRIBUTION-FILEWATCH', key='resolved_key') }}"
-A614276 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "UMEA-ACCOUNT-LEAD-CONTRIBUTION-LAKELOAD",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": _job_parameters},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
-
-A600679 = DummyOperator (task_id = "600679_DA-COM-GEM-UMEA-HUB-TO-MART-BDM-JOBS",
-                         task_display_name = "56398_DA-COM-GEM-UMEA-HUB-TO-MART-BDM-JOBS",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
 
 
-A613143 = PythonOperator (task_id = "613143_010-SHOW-DATABRICKS-JOB-STATUS-UMEA-FILE-VALIDATION-EMAIL",
-                          python_callable = test_function,
-                          task_display_name = "56460_010-SHOW-DATABRICKS-JOB-STATUS-UMEA-FILE-VALIDATION-EMAIL",
-                          execution_timeout = timedelta(minutes=60), dag = dag)
+
+
+with TaskGroup(
+    group_id="600679_DA-COM-GEM-UMEA-HUB-TO-MART-BDM-JOBS",
+    tooltip="56398_DA-COM-GEM-UMEA-HUB-TO-MART-BDM-JOBS",
+    prefix_group_id=False,
+    dag=dag,
+) as A600679:
+
+    # Shared checkpoint: every job below feeds this.
+    A600679_SUCCESS = DummyOperator (task_id = "600679.SUCCESS",
+                                     task_display_name = "56398.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    _task_id = "601308_002-UMEA-HUBTOMART-REF-PRODUCT"
+    A601308 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56403_002-UMEA-HUBTOMART-REF-PRODUCT",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "604835_001-UMEA-HUBTOMART-REF-COUNTRY"
+    A604835 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56404_001-UMEA-HUBTOMART-REF-COUNTRY",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "614727_005-UMEA-HUBTOMART-TXN-DISTRIBUTOR-SALES"
+    A614727 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56400_005-UMEA-HUBTOMART-TXN-DISTRIBUTOR-SALES",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "617593_006-UMEA-HUBTOMART-TXN-TARGET-SALES"
+    A617593 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56399_006-UMEA-HUBTOMART-TXN-TARGET-SALES",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "618585_004-UMEA-HUBTOMART-REF-PRICE"
+    A618585 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56401_004-UMEA-HUBTOMART-REF-PRICE",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "629600_003-UMEA-HUBTOMART-REF-CUSTOMER-MAP"
+    A629600 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56402_003-UMEA-HUBTOMART-REF-CUSTOMER-MAP",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    # Internal wiring
+    A601308 >> [A600679_SUCCESS]
+    A604835 >> [A600679_SUCCESS]
+    A614727 >> [A600679_SUCCESS]
+    A617593 >> [A600679_SUCCESS]
+    A618585 >> [A600679_SUCCESS]
+    A629600 >> [A600679_SUCCESS]
+
+
+
 
 # A629725 = PythonOperator (task_id = "629725_001-UMEA-LAKETOLAKE-PRICE-STG", python_callable = test_function, task_display_name = "56408_001-UMEA-LAKETOLAKE-PRICE-STG", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "629725_001-UMEA-LAKETOLAKE-PRICE-STG"
-A629725 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56408_001-UMEA-LAKETOLAKE-PRICE-STG",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
-
-A610879 = DummyOperator (task_id = "610879_002-GEM-DATABRICKS-CALLBACK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                        task_display_name = "56454_002-GEM-DATABRICKS-CALLBACK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                        execution_timeout = timedelta(minutes=60), dag = dag)
-
-_task_id = "UMEA-PRICE-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["UMEA-PRICE-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='UMEA-PRICE-FILEWATCH', key='resolved_key') }}"
-A625269 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "UMEA-PRICE-LAKELOAD",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": _job_parameters},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
-
-A617836 = PythonOperator (task_id = "617836_020-ASSOCIATED-CALLBACK-JOB-MONITOR-DMP-EXCEPTION-SYNC",
-                          python_callable = test_function,
-                          task_display_name = "61157_020-ASSOCIATED-CALLBACK-JOB-MONITOR-DMP-EXCEPTION-SYNC",
-                          execution_timeout = timedelta(minutes=60), dag = dag)
 
 
 
-A630251_SUCCESS = DummyOperator (task_id = "630251.SUCCESS",
-                                 task_display_name = "56423.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
-
-_task_id = "UMEA-ACCOUNT-LEAD-CONTRIBUTION-FILEWATCH"
-A613709 = S3KeySensor (task_id = _task_id,
-                        task_display_name = "UMEA-ACCOUNT-LEAD-CONTRIBUTION-FILEWATCH",
-                        bucket_name = params[af_env][_task_id]["bucket_name"],
-                        bucket_key = params[af_env][_task_id]["bucket_key"],
-                        aws_conn_id = "aws_default",
-                        wildcard_match = True,
-                        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-                        timeout = S3_SENSOR_TIMEOUT_SECONDS,
-                        mode = "reschedule",
-                        on_failure_callback = on_failure_callback_S3,
-                        on_success_callback = on_success_callback_S3,
-                        dag = dag)
 
 
-A598109_SUCCESS = DummyOperator (task_id = "598109.SUCCESS",
-                                 task_display_name = "56420.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
-
-A598110_SUCCESS = DummyOperator (task_id = "598110.SUCCESS",
-                                 task_display_name = "56435.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
-
-A614911 = DummyOperator (task_id = "614911_001-GEM-DATABRICKS-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                         task_display_name = "56419_001-GEM-DATABRICKS-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                         execution_timeout = timedelta(minutes=60),
-                         on_success_callback = on_success_callback_dbx_lf_job,
-                         dag = dag)
-
-A598109 = DummyOperator (task_id = "598109_DA-COM-GEM-UMEA-COMMON-LAMBDA",
-                         task_display_name = "56420_DA-COM-GEM-UMEA-COMMON-LAMBDA",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
 
 
-A593329_SUCCESS = DummyOperator (task_id = "593329.SUCCESS",
-                                 task_display_name = "61153.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-_task_id = "UMEA-ACCOUNT-MAPPING-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["UMEA-ACCOUNT-MAPPING-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='UMEA-ACCOUNT-MAPPING-FILEWATCH', key='resolved_key') }}"
-A630252 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "UMEA-ACCOUNT-MAPPING-LAKELOAD",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": _job_parameters},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
+
+
+
+
+
+with TaskGroup(
+    group_id="598109_DA-COM-GEM-UMEA-COMMON-LAMBDA",
+    tooltip="56420_DA-COM-GEM-UMEA-COMMON-LAMBDA",
+    prefix_group_id=False,
+    dag=dag,
+) as A598109:
+
+    # Shared checkpoint: every filewatch branch below feeds this, marking
+    # "this branch of the COMMON-LAMBDA group was attempted" for the run.
+    A598109_SUCCESS = DummyOperator (task_id = "598109.SUCCESS",
+                                     task_display_name = "56420.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- ACCOUNT-MAPPING ---
+    A630251 = make_s3_filewatch("UMEA-ACCOUNT-MAPPING-FILEWATCH")
+
+    A630252_DEP_CHECK = make_dep_check("UMEA-ACCOUNT-MAPPING-DEPCHECK", "UMEA-ACCOUNT-MAPPING-LAKELOAD")
+
+    A630252 = make_lakeload("UMEA-ACCOUNT-MAPPING-LAKELOAD", "UMEA-ACCOUNT-MAPPING-FILEWATCH")
+
+    A630251_SUCCESS = DummyOperator (task_id = "630251.SUCCESS",
+                                     task_display_name = "56423.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- COUNTRY-MAPPING ---
+    A629057 = make_s3_filewatch("UMEA-COUNTRY-MAPPING-FILEWATCH")
+
+    A629657_DEP_CHECK = make_dep_check("UMEA-COUNTRY-MAPPING-DEPCHECK", "UMEA-COUNTRY-MAPPING-LAKELOAD")
+
+    A629657 = make_lakeload("UMEA-COUNTRY-MAPPING-LAKELOAD", "UMEA-COUNTRY-MAPPING-FILEWATCH")
+
+    A629057_SUCCESS = DummyOperator (task_id = "629057.SUCCESS",
+                                     task_display_name = "56427.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- DISTRIBUTOR-PRODUCT-MAPPING ---
+    A628320 = make_s3_filewatch("UMEA-DISTRIBUTOR-PRODUCT-MAPPING-FILEWATCH")
+
+    A628321_DEP_CHECK = make_dep_check("UMEA-DISTRIBUTOR-PRODUCT-MAPPING-DEPCHECK", "UMEA-DISTRIBUTOR-PRODUCT-MAPPING-LAKELOAD")
+
+    A628321 = make_lakeload("UMEA-DISTRIBUTOR-PRODUCT-MAPPING-LAKELOAD", "UMEA-DISTRIBUTOR-PRODUCT-MAPPING-FILEWATCH")
+
+    A628320_SUCCESS = DummyOperator (task_id = "628320.SUCCESS",
+                                     task_display_name = "56431.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- DISTRIBUTOR-SALES ---
+    A598110 = make_s3_filewatch("UMEA-DISTRIBUTOR-SALES-FILEWATCH")
+
+    A598925_DEP_CHECK = make_dep_check("UMEA-DISTRIBUTOR-SALES-DEPCHECK", "UMEA-DISTRIBUTOR-SALES-LAKELOAD")
+
+    A598925 = make_lakeload("UMEA-DISTRIBUTOR-SALES-LAKELOAD", "UMEA-DISTRIBUTOR-SALES-FILEWATCH")
+
+    A598110_SUCCESS = DummyOperator (task_id = "598110.SUCCESS",
+                                     task_display_name = "56435.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- PRICE ---
+    A603088 = make_s3_filewatch("UMEA-PRICE-FILEWATCH")
+
+    A625269_DEP_CHECK = make_dep_check("UMEA-PRICE-DEPCHECK", "UMEA-PRICE-LAKELOAD")
+
+    A625269 = make_lakeload("UMEA-PRICE-LAKELOAD", "UMEA-PRICE-FILEWATCH")
+
+    A603088_SUCCESS = DummyOperator (task_id = "603088.SUCCESS",
+                                     task_display_name = "56439.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- TARGET-SALES ---
+    A611564 = make_s3_filewatch("UMEA-TARGET-SALES-FILEWATCH")
+
+    A612098_DEP_CHECK = make_dep_check("UMEA-TARGET-SALES-DEPCHECK", "UMEA-TARGET-SALES-LAKELOAD")
+
+    A612098 = make_lakeload("UMEA-TARGET-SALES-LAKELOAD", "UMEA-TARGET-SALES-FILEWATCH")
+
+    A611564_SUCCESS = DummyOperator (task_id = "611564.SUCCESS",
+                                     task_display_name = "56447.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- ACCOUNT-LEAD-CONTRIBUTION ---
+    A613709 = make_s3_filewatch("UMEA-ACCOUNT-LEAD-CONTRIBUTION-FILEWATCH")
+
+    A614276_DEP_CHECK = make_dep_check("UMEA-ACCOUNT-LEAD-CONTRIBUTION-DEPCHECK", "UMEA-ACCOUNT-LEAD-CONTRIBUTION-LAKELOAD")
+
+    A614276 = make_lakeload("UMEA-ACCOUNT-LEAD-CONTRIBUTION-LAKELOAD", "UMEA-ACCOUNT-LEAD-CONTRIBUTION-FILEWATCH")
+
+    A613709_SUCCESS = DummyOperator (task_id = "613709.SUCCESS",
+                                     task_display_name = "56451.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # Internal wiring: filewatch -> [group checkpoint, dep-check] -> lakeload -> branch checkpoint
+    A630251 >> [A598109_SUCCESS, A630252_DEP_CHECK]
+    A630252_DEP_CHECK >> [A630252]
+    A630252 >> [A630251_SUCCESS]
+    A629057 >> [A598109_SUCCESS, A629657_DEP_CHECK]
+    A629657_DEP_CHECK >> [A629657]
+    A629657 >> [A629057_SUCCESS]
+    A628320 >> [A598109_SUCCESS, A628321_DEP_CHECK]
+    A628321_DEP_CHECK >> [A628321]
+    A628321 >> [A628320_SUCCESS]
+    A598110 >> [A598109_SUCCESS, A598925_DEP_CHECK]
+    A598925_DEP_CHECK >> [A598925]
+    A598925 >> [A598110_SUCCESS]
+    A603088 >> [A598109_SUCCESS, A625269_DEP_CHECK]
+    A625269_DEP_CHECK >> [A625269]
+    A625269 >> [A603088_SUCCESS]
+    A611564 >> [A598109_SUCCESS, A612098_DEP_CHECK]
+    A612098_DEP_CHECK >> [A612098]
+    A612098 >> [A611564_SUCCESS]
+    A613709 >> [A598109_SUCCESS, A614276_DEP_CHECK]
+    A614276_DEP_CHECK >> [A614276]
+    A614276 >> [A613709_SUCCESS]
+
+
+
+
 
 
 # A607462 = PythonOperator (task_id = "607462_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA", python_callable = test_function, task_display_name = "56411_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "607462_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA"
-A607462 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56411_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-_task_id = "UMEA-DISTRIBUTOR-SALES-FILEWATCH"
-A598110 = S3KeySensor (task_id = _task_id,
-                        task_display_name = "UMEA-DISTRIBUTOR-SALES-FILEWATCH",
-                        bucket_name = params[af_env][_task_id]["bucket_name"],
-                        bucket_key = params[af_env][_task_id]["bucket_key"],
-                        aws_conn_id = "aws_default",
-                        wildcard_match = True,
-                        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-                        timeout = S3_SENSOR_TIMEOUT_SECONDS,
-                        mode = "reschedule",
-                        on_failure_callback = on_failure_callback_S3,
-                        on_success_callback = on_success_callback_S3,
-                        dag = dag)
 
-_task_id = "UMEA-TARGET-SALES-FILEWATCH"
-A611564 = S3KeySensor (task_id = _task_id,
-                        task_display_name = "UMEA-TARGET-SALES-FILEWATCH",
-                        bucket_name = params[af_env][_task_id]["bucket_name"],
-                        bucket_key = params[af_env][_task_id]["bucket_key"],
-                        aws_conn_id = "aws_default",
-                        wildcard_match = True,
-                        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-                        timeout = S3_SENSOR_TIMEOUT_SECONDS,
-                        mode = "reschedule",
-                        on_failure_callback = on_failure_callback_S3,
-                        on_success_callback = on_success_callback_S3,
-                        dag = dag)
 
 
 
 # A614621 = PythonOperator (task_id = "614621_003-UMEA-LAKETOLAKE-DISTRIBUTOR-SALES-STG", python_callable = test_function, task_display_name = "56406_003-UMEA-LAKETOLAKE-DISTRIBUTOR-SALES-STG", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "614621_003-UMEA-LAKETOLAKE-DISTRIBUTOR-SALES-STG"
-A614621 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56406_003-UMEA-LAKETOLAKE-DISTRIBUTOR-SALES-STG",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 # A617593 = PythonOperator (task_id = "617593_006-UMEA-HUBTOMART-TXN-TARGET-SALES", python_callable = test_function, task_display_name = "56399_006-UMEA-HUBTOMART-TXN-TARGET-SALES", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "617593_006-UMEA-HUBTOMART-TXN-TARGET-SALES"
-A617593 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56399_006-UMEA-HUBTOMART-TXN-TARGET-SALES",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 # A628884 = PythonOperator (task_id = "628884_002-UMEA-LAKETOLAKE-TARGET-SALES-STG", python_callable = test_function, task_display_name = "56407_002-UMEA-LAKETOLAKE-TARGET-SALES-STG", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "628884_002-UMEA-LAKETOLAKE-TARGET-SALES-STG"
-A628884 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56407_002-UMEA-LAKETOLAKE-TARGET-SALES-STG",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 # A614727 = PythonOperator (task_id = "614727_005-UMEA-HUBTOMART-TXN-DISTRIBUTOR-SALES", python_callable = test_function, task_display_name = "56400_005-UMEA-HUBTOMART-TXN-DISTRIBUTOR-SALES", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "614727_005-UMEA-HUBTOMART-TXN-DISTRIBUTOR-SALES"
-A614727 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56400_005-UMEA-HUBTOMART-TXN-DISTRIBUTOR-SALES",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 # A603722 = PythonOperator (task_id = "603722_002-UMEA-LAKETOHUB-REF-CUSTOMER-MAP-UMEA", python_callable = test_function, task_display_name = "56414_002-UMEA-LAKETOHUB-REF-CUSTOMER-MAP-UMEA", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "603722_002-UMEA-LAKETOHUB-REF-CUSTOMER-MAP-UMEA"
-A603722 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56414_002-UMEA-LAKETOHUB-REF-CUSTOMER-MAP-UMEA",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-A603088_SUCCESS = DummyOperator (task_id = "603088.SUCCESS",
-                                 task_display_name = "56439.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-A598135 = DummyOperator (task_id = "598135_001-GEM-DATABRICKS-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                         task_display_name = "56417_001-GEM-DATABRICKS-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                         execution_timeout = timedelta(minutes=60),
-                         on_success_callback = on_success_callback_dbx_lf_job,
-                         dag = dag)
 
-A613141 = DummyOperator (task_id = "613141_DA-COM-GEM-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                         task_display_name = "56418_DA-COM-GEM-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
 
-A593330 = DummyOperator (task_id = "593330_002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-UMEA",
-                         task_display_name = "61156_002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-UMEA",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
+with TaskGroup(
+    group_id="613141_DA-COM-GEM-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+    tooltip="56418_DA-COM-GEM-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+    prefix_group_id=False,
+    dag=dag,
+) as A613141:
 
-A613141_SUCCESS = DummyOperator (task_id = "613141.SUCCESS",
-                                 task_display_name = "56418.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
+    # Shared checkpoint: fed from both the callback branch (613142) and
+    # the notebook branch (614911).
+    A613141_SUCCESS = DummyOperator (task_id = "613141.SUCCESS",
+                                     task_display_name = "56418.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
 
-_task_id = "UMEA-COUNTRY-MAPPING-FILEWATCH"
-A629057 = S3KeySensor (task_id = _task_id,
-                        task_display_name = "UMEA-COUNTRY-MAPPING-FILEWATCH",
-                        bucket_name = params[af_env][_task_id]["bucket_name"],
-                        bucket_key = params[af_env][_task_id]["bucket_key"],
-                        aws_conn_id = "aws_default",
-                        wildcard_match = True,
-                        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-                        timeout = S3_SENSOR_TIMEOUT_SECONDS,
-                        mode = "reschedule",
-                        on_failure_callback = on_failure_callback_S3,
-                        on_success_callback = on_success_callback_S3,
-                        dag = dag)
+    # --- callback branch ---
+    A613142 = DummyOperator (task_id = "613142_002-GEM-DATABRICKS-CALLBACK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+                             task_display_name = "56458_002-GEM-DATABRICKS-CALLBACK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+                             execution_timeout = timedelta(minutes=60), dag = dag)
 
-A613142_SUCCESS = DummyOperator (task_id = "613142.SUCCESS",
-                                 task_display_name = "56458.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
+    A613143 = PythonOperator (task_id = "613143_010-SHOW-DATABRICKS-JOB-STATUS-UMEA-FILE-VALIDATION-EMAIL",
+                              python_callable = test_function,
+                              task_display_name = "56460_010-SHOW-DATABRICKS-JOB-STATUS-UMEA-FILE-VALIDATION-EMAIL",
+                              execution_timeout = timedelta(minutes=60), dag = dag)
 
-_task_id = "UMEA-ACCOUNT-MAPPING-FILEWATCH"
-A630251 = S3KeySensor (task_id = _task_id,
-                        task_display_name = "UMEA-ACCOUNT-MAPPING-FILEWATCH",
-                        bucket_name = params[af_env][_task_id]["bucket_name"],
-                        bucket_key = params[af_env][_task_id]["bucket_key"],
-                        aws_conn_id = "aws_default",
-                        wildcard_match = True,
-                        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-                        timeout = S3_SENSOR_TIMEOUT_SECONDS,
-                        mode = "reschedule",
-                        on_failure_callback = on_failure_callback_S3,
-                        on_success_callback = on_success_callback_S3,
-                        dag = dag)
+    A613142_SUCCESS = DummyOperator (task_id = "613142.SUCCESS",
+                                     task_display_name = "56458.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- notebook branch ---
+    A614911 = DummyOperator (task_id = "614911_001-GEM-DATABRICKS-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+                             task_display_name = "56419_001-GEM-DATABRICKS-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+                             execution_timeout = timedelta(minutes=60),
+                             on_success_callback = on_success_callback_dbx_lf_job,
+                             dag = dag)
+
+    _task_id = "629958_010-DATABRICKS-RUN-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL"
+    A629958 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56457_010-DATABRICKS-RUN-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    A617037 = PythonOperator (task_id = "617037_020-ASSOCIATED-CALLBACK-JOB-MONITOR-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+                              python_callable = test_function,
+                              task_display_name = "56459_020-ASSOCIATED-CALLBACK-JOB-MONITOR-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
+                              execution_timeout = timedelta(minutes=60), dag = dag)
+
+    A614911_SUCCESS = DummyOperator (task_id = "614911.SUCCESS",
+                                     task_display_name = "56419.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # Internal wiring: callback branch (613142->613143->613142.SUCCESS->617037) and
+    # notebook branch (614911->629958->617037) converge on 617037, which then
+    # marks 614911.SUCCESS; 613142 and 614911 each also feed the shared 613141.SUCCESS.
+    A613142 >> [A613141_SUCCESS, A613143]
+    A613143 >> [A613142_SUCCESS]
+    A613142_SUCCESS >> [A617037]
+    A614911 >> [A613141_SUCCESS, A629958]
+    A629958 >> [A617037]
+    A617037 >> [A614911_SUCCESS]
+
+
+
+
+
+
 
 # A614349 = PythonOperator (task_id = "614349_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC", python_callable = test_function, task_display_name = "61155_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "614349_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC"
-A614349 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "61155_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-_task_id = "UMEA-PRICE-FILEWATCH"
-A603088 = S3KeySensor (task_id = _task_id,
-                        task_display_name = "UMEA-PRICE-FILEWATCH",
-                        bucket_name = params[af_env][_task_id]["bucket_name"],
-                        bucket_key = params[af_env][_task_id]["bucket_key"],
-                        aws_conn_id = "aws_default",
-                        wildcard_match = True,
-                        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-                        timeout = S3_SENSOR_TIMEOUT_SECONDS,
-                        mode = "reschedule",
-                        on_failure_callback = on_failure_callback_S3,
-                        on_success_callback = on_success_callback_S3,
-                        dag = dag)
 
 # A614752 = PythonOperator (task_id = "614752_010-DATABRICKS-RUN-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL", python_callable = test_function, task_display_name = "56453_010-DATABRICKS-RUN-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "614752_010-DATABRICKS-RUN-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL"
-A614752 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56453_010-DATABRICKS-RUN-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 A593328 = DummyOperator (task_id = "593328_DA-COM-GEM-UMEA",
                          task_display_name = "56397_DA-COM-GEM-UMEA",
                          execution_timeout = timedelta(minutes=60), dag = dag)
 
-_task_id = "UMEA-COUNTRY-MAPPING-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["UMEA-COUNTRY-MAPPING-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='UMEA-COUNTRY-MAPPING-FILEWATCH', key='resolved_key') }}"
-A629657 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "UMEA-COUNTRY-MAPPING-LAKELOAD",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": _job_parameters},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-_task_id = "UMEA-DISTRIBUTOR-PRODUCT-MAPPING-FILEWATCH"
-A628320 = S3KeySensor (task_id = _task_id,
-                        task_display_name = "UMEA-DISTRIBUTOR-PRODUCT-MAPPING-FILEWATCH",
-                        bucket_name = params[af_env][_task_id]["bucket_name"],
-                        bucket_key = params[af_env][_task_id]["bucket_key"],
-                        aws_conn_id = "aws_default",
-                        wildcard_match = True,
-                        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-                        timeout = S3_SENSOR_TIMEOUT_SECONDS,
-                        mode = "reschedule",
-                        on_failure_callback = on_failure_callback_S3,
-                        on_success_callback = on_success_callback_S3,
-                        dag = dag)
 
 
 # A618585 = PythonOperator (task_id = "618585_004-UMEA-HUBTOMART-REF-PRICE", python_callable = test_function, task_display_name = "56401_004-UMEA-HUBTOMART-REF-PRICE", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "618585_004-UMEA-HUBTOMART-REF-PRICE"
-A618585 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56401_004-UMEA-HUBTOMART-REF-PRICE",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 
 ASTART = DummyOperator (task_id = "START", execution_timeout = timedelta(minutes=60), dag = dag)
 
-A600679_SUCCESS = DummyOperator (task_id = "600679.SUCCESS",
-                                 task_display_name = "56398.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
-
-A614620 = DummyOperator (task_id = "614620_DA-COM-GEM-UMEA-LAKE-TO-LAKE-BDM-JOBS",
-                         task_display_name = "56405_DA-COM-GEM-UMEA-LAKE-TO-LAKE-BDM-JOBS",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
-
-A598134 = DummyOperator (task_id = "598134_DA-COM-GEM-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                         task_display_name = "56416_DA-COM-GEM-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
 
 
-A614348 = DummyOperator (task_id = "614348_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-UMEA",
-                         task_display_name = "61154_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-UMEA",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
+with TaskGroup(
+    group_id="614620_DA-COM-GEM-UMEA-LAKE-TO-LAKE-BDM-JOBS",
+    tooltip="56405_DA-COM-GEM-UMEA-LAKE-TO-LAKE-BDM-JOBS",
+    prefix_group_id=False,
+    dag=dag,
+) as A614620:
+
+    # Shared checkpoint: every job below feeds this.
+    A614620_SUCCESS = DummyOperator (task_id = "614620.SUCCESS",
+                                     task_display_name = "56405.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    _task_id = "614621_003-UMEA-LAKETOLAKE-DISTRIBUTOR-SALES-STG"
+    A614621 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56406_003-UMEA-LAKETOLAKE-DISTRIBUTOR-SALES-STG",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "628884_002-UMEA-LAKETOLAKE-TARGET-SALES-STG"
+    A628884 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56407_002-UMEA-LAKETOLAKE-TARGET-SALES-STG",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "629725_001-UMEA-LAKETOLAKE-PRICE-STG"
+    A629725 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56408_001-UMEA-LAKETOLAKE-PRICE-STG",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    # Internal wiring
+    A614621 >> [A614620_SUCCESS]
+    A628884 >> [A614620_SUCCESS]
+    A629725 >> [A614620_SUCCESS]
+
+
+
+with TaskGroup(
+    group_id="598134_DA-COM-GEM-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+    tooltip="56416_DA-COM-GEM-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+    prefix_group_id=False,
+    dag=dag,
+) as A598134:
+
+    # Shared checkpoint: fed from both the notebook branch (598135) and
+    # the callback branch (610879).
+    A598134_SUCCESS = DummyOperator (task_id = "598134.SUCCESS",
+                                     task_display_name = "56416.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- notebook branch ---
+    A598135 = DummyOperator (task_id = "598135_001-GEM-DATABRICKS-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+                             task_display_name = "56417_001-GEM-DATABRICKS-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+                             execution_timeout = timedelta(minutes=60),
+                             on_success_callback = on_success_callback_dbx_lf_job,
+                             dag = dag)
+
+    _task_id = "614752_010-DATABRICKS-RUN-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL"
+    A614752 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56453_010-DATABRICKS-RUN-NOTEBOOK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    A605672 = PythonOperator (task_id = "605672_020-ASSOCIATED-CALLBACK-JOB-MONITOR-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+                              python_callable = test_function, task_display_name = "56455_020-ASSOCIATED-CALLBACK-JOB-MONITOR-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+                              execution_timeout = timedelta(minutes=60), dag = dag)
+
+    A598135_SUCCESS = DummyOperator (task_id = "598135.SUCCESS",
+                                     task_display_name = "56417.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- callback branch ---
+    A610879 = DummyOperator (task_id = "610879_002-GEM-DATABRICKS-CALLBACK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+                            task_display_name = "56454_002-GEM-DATABRICKS-CALLBACK-UMEA-DISTRIBUTOR-SALES-FILE-VALIDATION-EMAIL",
+                            execution_timeout = timedelta(minutes=60), dag = dag)
+
+    A610880 = PythonOperator (task_id = "610880_010-SHOW-DATABRICKS-JOB-STATUS-UMEA-FILE-VALIDATION-EMAIL",
+                              python_callable = test_function,
+                              task_display_name = "56456_010-SHOW-DATABRICKS-JOB-STATUS-UMEA-FILE-VALIDATION-EMAIL",
+                              execution_timeout = timedelta(minutes=60), dag = dag)
+
+    A610879_SUCCESS = DummyOperator (task_id = "610879.SUCCESS",
+                                     task_display_name = "56454.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60),dag = dag)
+
+    # Internal wiring: notebook branch (598135->614752->605672->598135.SUCCESS) and
+    # callback branch (610879->610880->610879.SUCCESS) converge on 605672; 598135
+    # and 610879 each also feed the shared 598134.SUCCESS.
+    A598135 >> [A598134_SUCCESS, A614752]
+    A614752 >> [A605672]
+    A610879_SUCCESS >> [A605672]
+    A605672 >> [A598135_SUCCESS]
+    A610879 >> [A598134_SUCCESS, A610880]
+    A610880 >> [A610879_SUCCESS]
+
+
+
 
 # A629958 = PythonOperator (task_id = "629958_010-DATABRICKS-RUN-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL", python_callable = test_function, task_display_name = "56457_010-DATABRICKS-RUN-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "629958_010-DATABRICKS-RUN-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL"
-A629958 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56457_010-DATABRICKS-RUN-NOTEBOOK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 
-A614620_SUCCESS = DummyOperator (task_id = "614620.SUCCESS",
-                                 task_display_name = "56405.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-A593329 = DummyOperator (task_id = "593329_DA-COM-GEM-UMEA-DMP-EXCEPTION-SYNC",
-                         task_display_name = "61153_DA-COM-GEM-UMEA-DMP-EXCEPTION-SYNC",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
+
+with TaskGroup(
+    group_id="593329_DA-COM-GEM-UMEA-DMP-EXCEPTION-SYNC",
+    tooltip="61153_DA-COM-GEM-UMEA-DMP-EXCEPTION-SYNC",
+    prefix_group_id=False,
+    dag=dag,
+) as A593329:
+
+    # Shared checkpoint: fed from both the notebook branch (593330) and
+    # the callback branch (614348).
+    A593329_SUCCESS = DummyOperator (task_id = "593329.SUCCESS",
+                                     task_display_name = "61153.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- notebook branch ---
+    A593330 = DummyOperator (task_id = "593330_002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-UMEA",
+                             task_display_name = "61156_002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-UMEA",
+                             execution_timeout = timedelta(minutes=60), dag = dag)
+
+    A593331 = PythonOperator (task_id = "593331_010-SHOW-DATABRICKS-JOB-STATUS-DMP-EXCEPTION-SYNC",
+                              python_callable = test_function,
+                              task_display_name = "61158_010-SHOW-DATABRICKS-JOB-STATUS-DMP-EXCEPTION-SYNC",
+                              execution_timeout = timedelta(minutes=60), dag = dag)
+
+    A593330_SUCCESS = DummyOperator (task_id = "593330.SUCCESS",
+                                     task_display_name = "61156.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # --- callback branch ---
+    A614348 = DummyOperator (task_id = "614348_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-UMEA",
+                             task_display_name = "61154_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-UMEA",
+                             execution_timeout = timedelta(minutes=60), dag = dag)
+
+    _task_id = "614349_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC"
+    A614349 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "61155_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    A617836 = PythonOperator (task_id = "617836_020-ASSOCIATED-CALLBACK-JOB-MONITOR-DMP-EXCEPTION-SYNC",
+                              python_callable = test_function,
+                              task_display_name = "61157_020-ASSOCIATED-CALLBACK-JOB-MONITOR-DMP-EXCEPTION-SYNC",
+                              execution_timeout = timedelta(minutes=60), dag = dag)
+
+    A614348_SUCCESS = DummyOperator (task_id = "614348.SUCCESS",
+                                     task_display_name = "61154.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    # Internal wiring: notebook branch (593330->593331->593330.SUCCESS->617836) and
+    # callback branch (614348->614349->617836) converge on 617836, which then
+    # marks 614348.SUCCESS; 593330 and 614348 each also feed the shared 593329.SUCCESS.
+    A593330 >> [A593329_SUCCESS, A593331]
+    A593331 >> [A593330_SUCCESS]
+    A593330_SUCCESS >> [A617836]
+    A614348 >> [A593329_SUCCESS, A614349]
+    A614349 >> [A617836]
+    A617836 >> [A614348_SUCCESS]
+
 
 # A617175 = PythonOperator (task_id = "617175_001-UMEA-LAKETOHUB-REF-COUNTRY-UMEA", python_callable = test_function, task_display_name = "56415_001-UMEA-LAKETOHUB-REF-COUNTRY-UMEA", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "617175_001-UMEA-LAKETOHUB-REF-COUNTRY-UMEA"
-A617175 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56415_001-UMEA-LAKETOHUB-REF-COUNTRY-UMEA",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-A598135_SUCCESS = DummyOperator (task_id = "598135.SUCCESS",
-                                 task_display_name = "56417.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-A614911_SUCCESS = DummyOperator (task_id = "614911.SUCCESS",
-                                 task_display_name = "56419.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-A593331 = PythonOperator (task_id = "593331_010-SHOW-DATABRICKS-JOB-STATUS-DMP-EXCEPTION-SYNC",
-                          python_callable = test_function,
-                          task_display_name = "61158_010-SHOW-DATABRICKS-JOB-STATUS-DMP-EXCEPTION-SYNC",
-                          execution_timeout = timedelta(minutes=60), dag = dag)
 
 # A616931 = PythonOperator (task_id = "616931_004-UMEA-LAKETOHUB-REF-PRICE-UMEA", python_callable = test_function, task_display_name = "56412_004-UMEA-LAKETOHUB-REF-PRICE-UMEA", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "616931_004-UMEA-LAKETOHUB-REF-PRICE-UMEA"
-A616931 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56412_004-UMEA-LAKETOHUB-REF-PRICE-UMEA",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-A610879_SUCCESS = DummyOperator (task_id = "610879.SUCCESS",
-                                 task_display_name = "56454.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60),dag = dag)
 
-A614348_SUCCESS = DummyOperator (task_id = "614348.SUCCESS",
-                                 task_display_name = "61154.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
 # A601308 = PythonOperator (task_id = "601308_002-UMEA-HUBTOMART-REF-PRODUCT", python_callable = test_function, task_display_name = "56403_002-UMEA-HUBTOMART-REF-PRODUCT", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "601308_002-UMEA-HUBTOMART-REF-PRODUCT"
-A601308 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56403_002-UMEA-HUBTOMART-REF-PRODUCT",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-A628320_SUCCESS = DummyOperator (task_id = "628320.SUCCESS",
-                                 task_display_name = "56431.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-A629057_SUCCESS = DummyOperator (task_id = "629057.SUCCESS",
-                                 task_display_name = "56427.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
 
 # A609983 = PythonOperator (task_id = "609983_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA", python_callable = test_function, task_display_name = "56410_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "609983_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA"
-A609983 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56410_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-A598134_SUCCESS = DummyOperator (task_id = "598134.SUCCESS",
-                                 task_display_name = "56416.SUCCESS",
-                                 execution_timeout = timedelta(minutes=60), dag = dag)
 
-A602671 = DummyOperator (task_id = "602671_DA-COM-GEM-UMEA-LAKE-TO-HUB-BDM-JOBS",
-                         task_display_name = "56409_DA-COM-GEM-UMEA-LAKE-TO-HUB-BDM-JOBS",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
 
-A617037 = PythonOperator (task_id = "617037_020-ASSOCIATED-CALLBACK-JOB-MONITOR-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                          python_callable = test_function,
-                          task_display_name = "56459_020-ASSOCIATED-CALLBACK-JOB-MONITOR-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                          execution_timeout = timedelta(minutes=60), dag = dag)
+with TaskGroup(
+    group_id="602671_DA-COM-GEM-UMEA-LAKE-TO-HUB-BDM-JOBS",
+    tooltip="56409_DA-COM-GEM-UMEA-LAKE-TO-HUB-BDM-JOBS",
+    prefix_group_id=False,
+    dag=dag,
+) as A602671:
+
+    # Shared checkpoint: every job below feeds this.
+    A602671_SUCCESS = DummyOperator (task_id = "602671.SUCCESS",
+                                     task_display_name = "56409.SUCCESS",
+                                     execution_timeout = timedelta(minutes=60), dag = dag)
+
+    _task_id = "602672_003-UMEA-LAKETOHUB-REF-PROD-INTL"
+    A602672 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56413_003-UMEA-LAKETOHUB-REF-PROD-INTL",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "603722_002-UMEA-LAKETOHUB-REF-CUSTOMER-MAP-UMEA"
+    A603722 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56414_002-UMEA-LAKETOHUB-REF-CUSTOMER-MAP-UMEA",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    A607462_DEP_CHECK = PythonSensor (task_id = "DEP_CHECK_607462_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA",
+                                      task_display_name = "Dependency Check - 005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA",
+                                      python_callable = check_variable_dependency("607462_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA"),
+                                      poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+                                      timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
+                                      mode = "reschedule",
+                                      dag = dag)
+
+    _task_id = "607462_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA"
+    A607462 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56411_005-UMEA-LAKETOHUB-TXN-DISTRIBUTOR-SALES-UMEA",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    A609983_DEP_CHECK = PythonSensor (task_id = "DEP_CHECK_609983_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA",
+                                      task_display_name = "Dependency Check - 006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA",
+                                      python_callable = check_variable_dependency("609983_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA"),
+                                      poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+                                      timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
+                                      mode = "reschedule",
+                                      dag = dag)
+
+    _task_id = "609983_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA"
+    A609983 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56410_006-UMEA-LAKETOHUB-TXN-TARGET-SALES-UMEA",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "616931_004-UMEA-LAKETOHUB-REF-PRICE-UMEA"
+    A616931 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56412_004-UMEA-LAKETOHUB-REF-PRICE-UMEA",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    _task_id = "617175_001-UMEA-LAKETOHUB-REF-COUNTRY-UMEA"
+    A617175 = DatabricksRunNowOperator (task_id = _task_id,
+                                        task_display_name = "56415_001-UMEA-LAKETOHUB-REF-COUNTRY-UMEA",
+                                        databricks_conn_id = DATABRICKS_CONN_ID,
+                                        job_id = params[af_env][_task_id]["job_id"],
+                                        json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
+                                        execution_timeout = timedelta(minutes=60),
+                                        on_failure_callback = on_failure_callback_dbx_lf_job,
+                                        on_success_callback = on_success_callback_dbx_lf_job,
+                                        dag = dag)
+
+    # Internal wiring
+    A607462_DEP_CHECK >> [A607462]
+    A609983_DEP_CHECK >> [A609983]
+    A602672 >> [A602671_SUCCESS]
+    A603722 >> [A602671_SUCCESS]
+    A607462 >> [A602671_SUCCESS]
+    A609983 >> [A602671_SUCCESS]
+    A616931 >> [A602671_SUCCESS]
+    A617175 >> [A602671_SUCCESS]
+
+
 
 
 # A604835 = PythonOperator (task_id = "604835_001-UMEA-HUBTOMART-REF-COUNTRY", python_callable = test_function, task_display_name = "56404_001-UMEA-HUBTOMART-REF-COUNTRY", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "604835_001-UMEA-HUBTOMART-REF-COUNTRY"
-A604835 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56404_001-UMEA-HUBTOMART-REF-COUNTRY",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-_task_id = "UMEA-DISTRIBUTOR-PRODUCT-MAPPING-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["UMEA-DISTRIBUTOR-PRODUCT-MAPPING-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='UMEA-DISTRIBUTOR-PRODUCT-MAPPING-FILEWATCH', key='resolved_key') }}"
-A628321 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "UMEA-DISTRIBUTOR-PRODUCT-MAPPING-LAKELOAD",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": _job_parameters},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
-A613142 = DummyOperator (task_id = "613142_002-GEM-DATABRICKS-CALLBACK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                         task_display_name = "56458_002-GEM-DATABRICKS-CALLBACK-UMEA-TARGET-SALES-FILE-VALIDATION-EMAIL",
-                         execution_timeout = timedelta(minutes=60), dag = dag)
 
 
 
 
 # A602672 = PythonOperator (task_id = "602672_003-UMEA-LAKETOHUB-REF-PROD-INTL", python_callable = test_function, task_display_name = "56413_003-UMEA-LAKETOHUB-REF-PROD-INTL", execution_timeout = timedelta(minutes=60), dag = dag)
-_task_id = "602672_003-UMEA-LAKETOHUB-REF-PROD-INTL"
-A602672 = DatabricksRunNowOperator (task_id = _task_id,
-                                    task_display_name = "56413_003-UMEA-LAKETOHUB-REF-PROD-INTL",
-                                    databricks_conn_id = DATABRICKS_CONN_ID,
-                                    job_id = params[af_env][_task_id]["job_id"],
-                                    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-                                    execution_timeout = timedelta(minutes=60),
-                                    on_failure_callback = on_failure_callback_dbx_lf_job,
-                                    on_success_callback = on_success_callback_dbx_lf_job,
-                                    dag = dag)
 
 # Dependency Management
 
-A593330_SUCCESS >> [A617836]
-A605672 >> [A598135_SUCCESS]
-A612098 >> [A611564_SUCCESS]
-A598925 >> [A598110_SUCCESS]
-A629600 >> [A600679_SUCCESS]
-A610880 >> [A610879_SUCCESS]
-A614276 >> [A613709_SUCCESS]
-A600679 >> [A601308, A604835, A614727, A617593, A618585, A629600]
-A613143 >> [A613142_SUCCESS]
-A629725 >> [A614620_SUCCESS]
-A610879 >> [A598134_SUCCESS, A610880]
-A625269 >> [A603088_SUCCESS]
-A617836 >> [A614348_SUCCESS]
-A613709 >> [A598109_SUCCESS, A614276_DEP_CHECK]
-A614276_DEP_CHECK >> [A614276]
-A614911 >> [A613141_SUCCESS, A629958]
-A598109 >> [A598110, A603088, A611564, A613709, A628320, A629057, A630251]
-A630252 >> [A630251_SUCCESS]
-A607462 >> [A602671_SUCCESS]
-A598110 >> [A598109_SUCCESS, A598925_DEP_CHECK]
-A598925_DEP_CHECK >> [A598925]
-A611564 >> [A598109_SUCCESS, A612098_DEP_CHECK]
-A612098_DEP_CHECK >> [A612098]
-A614621 >> [A614620_SUCCESS]
-A617593 >> [A600679_SUCCESS]
-A628884 >> [A614620_SUCCESS]
-A614727 >> [A600679_SUCCESS]
-A603722 >> [A602671_SUCCESS]
-A598135 >> [A598134_SUCCESS, A614752]
-A613141 >> [A613142, A614911]
-A593330 >> [A593329_SUCCESS, A593331]
-A629057 >> [A598109_SUCCESS, A629657_DEP_CHECK]
-A629657_DEP_CHECK >> [A629657]
-A613142_SUCCESS >> [A617037]
-A630251 >> [A598109_SUCCESS, A630252_DEP_CHECK]
-A630252_DEP_CHECK >> [A630252]
-A614349 >> [A617836]
-A603088 >> [A598109_SUCCESS, A625269_DEP_CHECK]
-A625269_DEP_CHECK >> [A625269]
-A614752 >> [A605672]
 A593328 >> [A593329, A598109, A598134, A600679, A602671, A613141, A614620]
-A629657 >> [A629057_SUCCESS]
-A628320 >> [A598109_SUCCESS, A628321_DEP_CHECK]
-A628321_DEP_CHECK >> [A628321]
-A618585 >> [A600679_SUCCESS]
 ASTART >> [A593328]
-A614620 >> [A614621, A628884, A629725]
-A598134 >> [A598135, A610879]
-A614348 >> [A593329_SUCCESS, A614349]
-A629958 >> [A617037]
-A593329 >> [A593330, A614348]
-A617175 >> [A602671_SUCCESS]
-A593331 >> [A593330_SUCCESS]
-A616931 >> [A602671_SUCCESS]
-A610879_SUCCESS >> [A605672]
-A601308 >> [A600679_SUCCESS]
-A609983 >> [A602671_SUCCESS]
-A602671 >> [A602672, A603722, A607462_DEP_CHECK, A609983_DEP_CHECK, A616931, A617175]
-A607462_DEP_CHECK >> [A607462]
-A609983_DEP_CHECK >> [A609983]
-A617037 >> [A614911_SUCCESS]
-A604835 >> [A600679_SUCCESS]
-A628321 >> [A628320_SUCCESS]
-A613142 >> [A613141_SUCCESS, A613143]
-A602672 >> [A602671_SUCCESS]
 # =============================================================================
 # JOB-EVENT edges (action_type=4)
 # =============================================================================

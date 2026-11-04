@@ -1,12 +1,13 @@
 DATABRICKS_CONN_ID = "Databricks_BDMToDBX_Default"
 
-# Files this DAG waits on arrive at ad hoc times during the day, so every S3KeySensor
-# pokes every 15 minutes and keeps waiting for its file until the 23:59 CET/CEST cutoff.
-# SENSOR_TIMEOUT_SECONDS is a fixed duration (23h59m) counted from the DAG's own 00:00
-# CET/CEST daily start - a sensor's timeout is measured from when it starts, not a
-# wall-clock cutoff, so it must line up with the DAG's schedule_interval start time.
-SENSOR_POKE_INTERVAL_SECONDS = 5 * 60
-SENSOR_TIMEOUT_SECONDS = 23 * 60 * 60 + 50 * 60
+EMAIL_RECIPIENTS = {
+    'DEV': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com;DL.IBU.Data.Architecture.Products.POD@takeda.com',
+    'TEST': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com,DL.IBU.Data.Architecture.Products.POD@takeda.com',
+    'PROD': 'DL.IBU.Data.Architecture.Products.POD@takeda.com,DL.EDB.GEM.ATM.COMM@takeda.com, DL.EDB.COMM.UAMS@takeda.com'
+}
+
+SENSOR_POKE_INTERVAL_SECONDS = 1 * 60
+SENSOR_TIMEOUT_SECONDS = 25 * 60
 
 SNOW_ATTRIBUTES = {
     "configuration_item": "Commercial Common Data Pipeline [EDB] - Production-AWS-Airflow-EU",
@@ -301,15 +302,15 @@ PARAMS_DICT = {
 
         "ATM-COUNTRY-MAPPING-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-com-data-analytics-gem-eu-central-1",
-            "bucket_key": "external/pre_contract/atm/COUNTRY_MAPPING.xlsx",
+            "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+            "bucket_key": "de/gem/external/pre_contract/COUNTRY_MAPPING.xlsx",
         },
         "ATM-COUNTRY-MAPPING-LAKELOAD": {
             "job_type": "DBX_LF_JOB",
             "job_id": "216931983214676",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-com-data-analytics-gem-eu-central-1",
-                "bucket_key": "external/pre_contract/atm/COUNTRY_MAPPING.xlsx",
+                "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+                "bucket_key": "de/gem/external/pre_contract/COUNTRY_MAPPING.xlsx",
             },
         },
 
@@ -380,7 +381,7 @@ PARAMS_DICT = {
         },
         "616712_002-BDM-LAKETOLAKE-ICLUSIG-MONTHLY-PROGRAM-UPDATE-STG": {
             "job_type": "DBX_LF_JOB",
-            "job_id": "1028038154595280",
+            "job_id": "1028038154595282",                        
             "job_parameters": {},
         },
         "627861_010-DATABRICKS-RUN-NOTEBOOK-DATA-COLLECTION-TEMPLATE": {
@@ -412,7 +413,7 @@ PARAMS_DICT = {
 
         "ATM-HSS-DATA-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-com-data-analytics-gem-eu-central-1",
+            "bucket_name": "tpc-aws-ted-prd-edpp-com-data-analytics-gem-eu-central-1",
             "bucket_key": "external/pre_contract/atm/ATM_HSS_all_data.xlsx",
         },
 
@@ -420,105 +421,105 @@ PARAMS_DICT = {
             "job_type": "DBX_LF_JOB",
             "job_id": "547361243102309",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-com-data-analytics-gem-eu-central-1",
+                "bucket_name": "tpc-aws-ted-prd-edpp-com-data-analytics-gem-eu-central-1",
                 "bucket_key": "external/pre_contract/atm/ATM_HSS_all_data.xlsx",
             },
         },
 
         "ATM-COMBINED-EXPORTS-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+            "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
             "bucket_key": "de/gem/external/pre_contract/COMBINED_EXPORTS_TAKEDA_GLOBAL_*.xlsx",
         },
         "ATM-COMBINED-EXPORTS-LAKELOAD": {
             "job_type": "DBX_LF_JOB",
             "job_id": "547361243102309",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+                "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
                 "bucket_key": "de/gem/external/pre_contract/COMBINED_EXPORTS_TAKEDA_GLOBAL_*.xlsx",
             },
         },
 
         "ATM-DATA-ENTRY-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+            "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
             "bucket_key": "de/gem/external/pre_contract/ATM_DATA_ENTRY.xlsx",
         },
         "ATM-DATA-ENTRY-LAKELOAD": {
             "job_type": "DBX_LF_JOB",
             "job_id": "547361243102309",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+                "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
                 "bucket_key": "de/gem/external/pre_contract/ATM_DATA_ENTRY.xlsx",
             },
         },
 
         "ATM-BRAND-MAPPING-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+            "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
             "bucket_key": "de/gem/external/pre_contract/BRAND_MAPPING.xlsx",
         },
         "ATM-BRAND-MAPPING-LAKELOAD": {
             "job_type": "DBX_LF_JOB",
             "job_id": "547361243102309",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+                "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
                 "bucket_key": "de/gem/external/pre_contract/BRAND_MAPPING.xlsx",
             },
         },
 
         "ATM-COUNTRY-MAPPING-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-com-data-analytics-gem-eu-central-1",
-            "bucket_key": "external/pre_contract/atm/COUNTRY_MAPPING.xlsx",
+            "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
+            "bucket_key": "de/gem/external/pre_contract/COUNTRY_MAPPING.xlsx",
         },
         "ATM-COUNTRY-MAPPING-LAKELOAD": {
             "job_type": "DBX_LF_JOB",
             "job_id": "547361243102309",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-com-data-analytics-gem-eu-central-1",
-                "bucket_key": "external/pre_contract/atm/COUNTRY_MAPPING.xlsx",
+                "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
+                "bucket_key": "de/gem/external/pre_contract/COUNTRY_MAPPING.xlsx",
             },
         },
 
         "ATM-TAKEDA-SUSTAINABILITY-ALL-TIME-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+            "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
             "bucket_key": "de/gem/external/pre_contract/TAKEDA_SUSTAINABILITY_ALL_TIME_*.csv",
         },
         "ATM-TAKEDA-SUSTAINABILITY-ALL-TIME-LAKELOAD": {
             "job_type": "DBX_LF_JOB",
             "job_id": "547361243102309",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+                "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
                 "bucket_key": "de/gem/external/pre_contract/TAKEDA_SUSTAINABILITY_ALL_TIME_*.csv",
             },
         },
 
         "ATM-MONTHLY-PROGRAM-UPDATE-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+            "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
             "bucket_key": "de/gem/external/pre_contract/TAKEDA_ICLUSIG_MONTHLY_PROGRAM_UPDATE_*.xlsx",
         },
         "ATM-MONTHLY-PROGRAM-UPDATE-LAKELOAD": {
             "job_type": "DBX_LF_JOB",
             "job_id": "547361243102309",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+                "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
                 "bucket_key": "de/gem/external/pre_contract/TAKEDA_ICLUSIG_MONTHLY_PROGRAM_UPDATE_*.xlsx",
             },
         },
 
         "ATM-TAKEDA-LSD-CAP-ACTIVE-PATIENT-ENROLLMENT-FILEWATCH": {
             "job_type": "S3_SENSOR",
-            "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+            "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
             "bucket_key": "de/gem/external/pre_contract/TAKEDA_LSD_CAP_ACTIVE_PATIENT_ENROLLMENT_UPDATE_*.xlsx",
         },
         "ATM-TAKEDA-LSD-CAP-ACTIVE-PATIENT-ENROLLMENT-LAKELOAD": {
             "job_type": "DBX_LF_JOB",
             "job_id": "547361243102309",
             "job_parameters": {
-                "bucket_name": "tpc-aws-ted-tst-edpp-raw-com-eu-central-1",
+                "bucket_name": "tpc-aws-ted-prd-edpp-raw-com-eu-central-1",
                 "bucket_key": "de/gem/external/pre_contract/TAKEDA_LSD_CAP_ACTIVE_PATIENT_ENROLLMENT_UPDATE_*.xlsx",
             },
         },   

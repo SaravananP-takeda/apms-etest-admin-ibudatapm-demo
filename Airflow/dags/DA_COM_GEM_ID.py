@@ -10,10 +10,10 @@ from airflow.utils.state import State
 from datetime import timedelta, datetime
 from airflow.utils.dates import days_ago
 from airflow.contrib.sensors.python_sensor import PythonSensor
+from airflow.utils.task_group import TaskGroup
 from airflow.models import Variable
 from airflow.sensors.external_task_sensor import ExternalTaskSensor
 from airflow.contrib.sensors.sftp_sensor import SFTPSensor
-# from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
 from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
 from airflow.operators.dagrun_operator import TriggerDagRunOperator
 from airflow.operators.python_operator import BranchPythonOperator
@@ -49,7 +49,7 @@ on_success_callback_ssh, on_failure_callback_ssh
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "parameters"))
 from DA_COM_GEM_ID_PARAMETERS import (
 PARAMS_DICT, SNOW_ATTRIBUTES_DEFAULTS, EMAIL_RECIPIENTS,
-DATABRICKS_CONN_ID, AWS_CONN_ID, GLOBALSCAPE_CONN_ID, SSH_CONN_ID,
+DATABRICKS_CONN_ID, AWS_CONN_ID,
 S3_SENSOR_POKE_INTERVAL_SECONDS, S3_SENSOR_TIMEOUT_SECONDS,
 PYTHON_SENSOR_POKE_INTERVAL_SECONDS, PYTHON_SENSOR_TIMEOUT_SECONDS
 
@@ -72,7 +72,7 @@ snow_attributes = {
     'apms_id':            'APMS-93057',
     'bsn_id':             'BSN0020621',
     'type':               'AWS-Airflow-EU',
-    'env':                'DEV',
+    'env':                af_env,
 }
 
 ####======= Class to handle Callback Action Functions ==========================================
@@ -695,7 +695,7 @@ VARIABLE_DEPENDENCIES = {
     },
     "007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN": {
         "type": "compound",
-        "formula": "([58695] OR [58694] OR [58693] OR [58690] OR [58691] OR [58692] OR [63545]) AND (([58701] AND [58704] AND [58697]) OR [58695]) AND ([58699] OR [58694]) AND ([58700] OR [58693]) AND (([58697] AND [58698] AND [58703]) OR [58690]) AND (([58697] AND [58698]) OR [58691]) AND ([58702] OR [58692])",
+        "formula": "([58674] OR [58675] OR [58676] OR [58677] OR [58678] OR [58679] OR [58680] OR [69636]) AND (([58683] AND [58688]) OR [58674]) AND ([58683] OR [58675]) AND ([58687] OR [58676]) AND ([58685] OR [58677]) AND ([58684] OR [58678]) AND (([58686] AND [58689]) OR [58679])",
         "atomic": {
             58685: ("ID-MASTER-EMPLOYEE", False),
             58680: ("ID-LAKETOLAKE-ID-TB-SALES-UDC", True),
@@ -791,7 +791,7 @@ def on_failure_callback_iics_wrapper(context):
 def on_success_callback_dbx_lf_job_wrapper(context):
     dag_callback_action_obj = DAGCallbackAction()
     on_success_callback_dbx_lf_job(context, dag_callback_action_obj)
-    
+
 def on_failure_callback_dbx_lf_job_wrapper(context):
     dag_callback_action_obj = DAGCallbackAction()
     on_failure_callback_dbx_lf_job(context, dag_callback_action_obj)
@@ -799,7 +799,7 @@ def on_failure_callback_dbx_lf_job_wrapper(context):
 def on_success_callback_globalscape_wrapper(context):
     dag_callback_action_obj = DAGCallbackAction()
     on_success_callback_globalscape(context, dag_callback_action_obj)
-    
+
 def on_failure_callback_globalscape_wrapper(context):
     dag_callback_action_obj = DAGCallbackAction()
     on_failure_callback_globalscape(context, dag_callback_action_obj)
@@ -830,8 +830,7 @@ dag = DAG(
     dag_id = "DA-COM-GEM-ID",
     description = "-- Deployed from DEFRATAGAD001 by onetakeda\nxi2827 on 09/28/2022 12:18:59 PM -- Deployed from DEFRATAGAD001 by onetakeda\nxi2827 on 09/28/2022 12:18:59 PM -- Deployed from DEFRATAGAD001 by onetakeda\nxi2827 on 09/28/2022 12:18:59 PM -- Deployed from DEFRATAGAPT001 by onetakeda\sagpatil on 06/27/2023 11:07:34 AM -- Updated from DEFRATAGAPT001 by qpf2671 on 07/29/2024 10:38:52 AM -- Updated from DEFRATAGAPT001 by cef9990 on 08/12/2024 11:29:22 AM",
     default_args = default_args,
-    # schedule_interval = None, # TO DO - to check this later
-    schedule_interval = None,
+    schedule_interval = "*/30 * * * *",
     concurrency = 16,
     start_date = datetime(2026,9,6),
     catchup = False,
@@ -844,1118 +843,1110 @@ def test_function():
 
 ####================== Jobs: Task Definitions ===================================
 
-_task_id = "ID-PRODUCT-UDC-DEPCHECK"
-A742458_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-PRODUCT-UDC-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-EMPLOYEE-TEAM-DEPCHECK"
-A747953_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-EMPLOYEE-TEAM-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-MASTER-EMPLOYEE-DEPCHECK"
-A747831_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-MASTER-EMPLOYEE-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-TARGET-SALES-OTC-DEPCHECK"
-A713117_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-TARGET-SALES-OTC-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-SALES-UDC-DEPCHECK"
-A719539_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-SALES-UDC-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-TB-PRODUCT-PRICE-DEPCHECK"
-A720348_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-TB-PRODUCT-PRICE-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-CUSTOMER-UDC-DEPCHECK"
-A737634_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-CUSTOMER-UDC-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-TB-MASTER-PRODUCT-DEPCHECK"
-A709250_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-TB-MASTER-PRODUCT-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-SALESFORCE-CUSTOMER-ALIGNMENT-DEPCHECK"
-A715145_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-SALESFORCE-CUSTOMER-ALIGNMENT-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-TB-HOSPITAL-OUTLET-MAP-DEPCHECK"
-A710447_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-TB-HOSPITAL-OUTLET-MAP-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-TARGET-SALES-TBE-DEPCHECK"
-A737431_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-TARGET-SALES-TBE-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-VACCINE-SALES-DEPCHECK"
-A748147_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-VACCINE-SALES-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-TARGET-SALES-VAC-DEPCHECK"
-A737571_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("ID-TARGET-SALES-VAC-FILEWATCH"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "003-ID-LAKETOHUB-REF-EMP-IDN-DEPCHECK"
-A738127_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("003-ID-LAKETOHUB-REF-EMP-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "005-ID-LAKETOHUB-REF-CUST-TERR-ALIGNMENT-IDN-DEPCHECK"
-A717929_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("005-ID-LAKETOHUB-REF-CUST-TERR-ALIGNMENT-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "006-ID-LAKETOHUB-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN-DEPCHECK"
-A738868_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("006-ID-LAKETOHUB-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "009-ID-LAKETOHUB-REF-PROD-PRICE-IDN-DEPCHECK"
-A710100_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("009-ID-LAKETOHUB-REF-PROD-PRICE-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "001-ID-LAKETOLAKE-ID-TB-SALES-UDC-DEPCHECK"
-A741885_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("001-ID-LAKETOLAKE-ID-TB-SALES-UDC"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "002-ID-LAKETOLAKE-ID-TB-VACCINE-SALES-STG-DEPCHECK"
-A724359_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("002-ID-LAKETOLAKE-ID-TB-VACCINE-SALES-STG"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "003-ID-LAKETOLAKE-TARGET-SALES-STG-DEPCHECK"
-A728541_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("003-ID-LAKETOLAKE-TARGET-SALES-STG"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "011-ID-TXN-ACTUAL-SALES-IDN-APL-SUCCESS-MAIL-SLEEP-JOB-DEPCHECK"
-A747788_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("011-ID-TXN-ACTUAL-SALES-IDN-APL-SUCCESS-MAIL-SLEEP-JOB"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "012-ID-TXN-ACTUAL-SALES-IDN-DICO-SUCCESS-MAIL-SLEEP-JOB-DEPCHECK"
-A738608_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("012-ID-TXN-ACTUAL-SALES-IDN-DICO-SUCCESS-MAIL-SLEEP-JOB"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "001-ID-LAKETOHUB-CUST-XREF-IDN-DEPCHECK"
-A711942_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("001-ID-LAKETOHUB-CUST-XREF-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "002-ID-LAKETOHUB-REF-PROD-IDN-DEPCHECK"
-A742267_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("002-ID-LAKETOHUB-REF-PROD-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "004-ID-LAKETOHUB-REF-CUST-IDN-DEPCHECK"
-A744144_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("004-ID-LAKETOHUB-REF-CUST-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN-DEPCHECK"
-A748793_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "008-ID-LAKETOHUB-TXN-TARGET-SALES-IDN-DEPCHECK"
-A747491_DEP_CHECK = PythonSensor (
-    task_id = _task_id,
-    task_display_name = _task_id,
-    python_callable = check_variable_dependency("008-ID-LAKETOHUB-TXN-TARGET-SALES-IDN"),
-    poke_interval = PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
-    timeout = PYTHON_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    dag = dag
-)
-
-_task_id = "ID-TB-PRODUCT-PRICE-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-TB-PRODUCT-PRICE-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TB-PRODUCT-PRICE-FILEWATCH', key='resolved_key') }}"
-A726545 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "730873_004-ID-LAKETOLAKE-VACCINE-DAILY-STOCK-STG"
-A730873 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = "54201_004-ID-LAKETOLAKE-VACCINE-DAILY-STOCK-STG",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-PRODUCT-UDC-FILEWATCH"
-A742458 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "710100_009-ID-LAKETOHUB-REF-PROD-PRICE-IDN"
-A710100 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = "54195_009-ID-LAKETOHUB-REF-PROD-PRICE-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-TB-PRODUCT-PRICE-FILEWATCH"
-A720348 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "ID-SALESFORCE-CUSTOMER-ALIGNMENT-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-SALESFORCE-CUSTOMER-ALIGNMENT-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-SALESFORCE-CUSTOMER-ALIGNMENT-FILEWATCH', key='resolved_key') }}"
-A731370 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "711942_001-ID-LAKETOHUB-CUST-XREF-IDN"
-A711942 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = "54179_001-ID-LAKETOHUB-CUST-XREF-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A720539 = DummyOperator (task_id = "720539_DA-COM-GEM-ID-SALES-UDC-FILE-VALIDATION-EMAIL", task_display_name = "57501_DA-COM-GEM-ID-SALES-UDC-FILE-VALIDATION-EMAIL", dag = dag)
-
-A733452 = DummyOperator (task_id = "733452_001-GEM-DATABRICKS-NOTEBOOK-ID-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL", task_display_name = "58289_001-GEM-DATABRICKS-NOTEBOOK-ID-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL", dag = dag)
-
-_task_id = "724359_002-ID-LAKETOLAKE-ID-TB-VACCINE-SALES-STG"
-A724359 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = "54199_002-ID-LAKETOLAKE-ID-TB-VACCINE-SALES-STG",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-TARGET-SALES-OTC-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-TARGET-SALES-OTC-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TARGET-SALES-OTC-FILEWATCH', key='resolved_key') }}"
-A729800 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A742574 = DummyOperator (task_id = "742574_020-ASSOCIATED-CALLBACK-JOB-MONITOR-DMP-EXCEPTION-SYNC", task_display_name = "61109_020-ASSOCIATED-CALLBACK-JOB-MONITOR-DMP-EXCEPTION-SYNC", dag = dag)
-
-A724741 = DummyOperator (task_id = "724741_DA-COM-GEM-ID-HUB-TO-MART-BDM-JOBS", task_display_name = "54175_DA-COM-GEM-ID-HUB-TO-MART-BDM-JOBS", dag = dag)
-
-_task_id = "743417_010-ID-LAKETOHUB-TXN-VACCINE-INVENTORY-IDN"
-A743417 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = "54196_010-ID-LAKETOHUB-TXN-VACCINE-INVENTORY-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-VACCINE-DAILY-STOCK-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-VACCINE-DAILY-STOCK-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-VACCINE-DAILY-STOCK-FILEWATCH', key='resolved_key') }}"
-A714664 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-VACCINE-DAILY-STOCK-FILEWATCH"
-A739616 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-A740418 = DummyOperator (task_id = "740418_010-SHOW-DATABRICKS-JOB-STATUS-DMP-EXCEPTION-SYNC", task_display_name = "61110_010-SHOW-DATABRICKS-JOB-STATUS-DMP-EXCEPTION-SYNC", dag = dag)
-
-_task_id = "735869_009-ID-HUBTOMART-REF-PROD-PRICE-IDN"
-A735869 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = "54186_009-ID-HUBTOMART-REF-PROD-PRICE-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "732269_007-ID-HUBTOMART-TXN-ACTUAL-SALES-IDN"
-A732269 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = "54184_007-ID-HUBTOMART-TXN-ACTUAL-SALES-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-VACCINE-SALES-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-VACCINE-SALES-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-VACCINE-SALES-FILEWATCH', key='resolved_key') }}"
-A732893 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-EMPLOYEE-TEAM-FILEWATCH"
-A747953 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID ,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "748793_007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN"
-A748793 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = "54193_007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-TARGET-SALES-VAC-FILEWATCH"
-A737571 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-A720541 = DummyOperator (task_id = "720541_010-SHOW-DATABRICKS-JOB-STATUS-ID-FILE-VALIDATION-EMAIL", task_display_name = "57506_010-SHOW-DATABRICKS-JOB-STATUS-ID-FILE-VALIDATION-EMAIL", dag = dag)
-
-_task_id = "ID-CUSTOMER-UDC-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-CUSTOMER-UDC-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-CUSTOMER-UDC-FILEWATCH', key='resolved_key') }}"
-A738058 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A710099 = DummyOperator (task_id = "710099_DA-COM-GEM-ID-LAKE-TO-HUB-BDM-JOBS", task_display_name = "54178_DA-COM-GEM-ID-LAKE-TO-HUB-BDM-JOBS", dag = dag)
-
-_task_id = "ID-MASTER-EMPLOYEE-FILEWATCH"
-A747831 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID ,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "729935_004-ID-HUBTOMART-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN"
-A729935 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54181_004-ID-HUBTOMART-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-CUSTOMER-UDC-FILEWATCH"
-A737634 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "735446_008-ID-HUBTOMART-REF-CUST-TERR-ALIGNMENT-IDN"
-A735446 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54185_008-ID-HUBTOMART-REF-CUST-TERR-ALIGNMENT-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "747667_010-DATABRICKS-RUN-NOTEBOOK-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL"
-A747667 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="58290_010-DATABRICKS-RUN-NOTEBOOK-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A734713 = DummyOperator (task_id = "734713_010-SHOW-DATABRICKS-JOB-STATUS-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL", task_display_name = "58288_010-SHOW-DATABRICKS-JOB-STATUS-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL", dag = dag)
-
-_task_id = "735229_006-ID-HUBTOMART-TXN-TARGET-SALES-IDN"
-A735229 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54183_006-ID-HUBTOMART-TXN-TARGET-SALES-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A747788 = DummyOperator (
-    task_id = "747788_011-ID-TXN-ACTUAL-SALES-IDN-APL-SUCCESS-MAIL-SLEEP-JOB",
-    task_display_name = "58292_011-ID-TXN-ACTUAL-SALES-IDN-APL-SUCCESS-MAIL-SLEEP-JOB",
-    on_success_callback = on_success_callback_python_wrapper,
-    on_failure_callback = on_failure_callback_python_wrapper,
-    dag = dag
-)
-
-_task_id = "717929_005-ID-LAKETOHUB-REF-CUST-TERR-ALIGNMENT-IDN"
-A717929 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54191_005-ID-LAKETOHUB-REF-CUST-TERR-ALIGNMENT-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A738608 = DummyOperator (
-    task_id = "738608_012-ID-TXN-ACTUAL-SALES-IDN-DICO-SUCCESS-MAIL-SLEEP-JOB",
-    task_display_name = "58293_012-ID-TXN-ACTUAL-SALES-IDN-DICO-SUCCESS-MAIL-SLEEP-JOB",
-    on_success_callback = on_success_callback_python_wrapper,
-    on_failure_callback = on_failure_callback_python_wrapper,
-    dag = dag
-)
-
-_task_id = "738127_003-ID-LAKETOHUB-REF-EMP-IDN"
-A738127 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54189_003-ID-LAKETOHUB-REF-EMP-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-TARGET-SALES-TBE-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-TARGET-SALES-TBE-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TARGET-SALES-TBE-FILEWATCH', key='resolved_key') }}"
-A743058 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A717009 = DummyOperator (task_id = "717009_002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-ID", task_display_name = "61108_002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-ID", dag = dag)
-
-_task_id = "ID-VACCINE-SALES-FILEWATCH"
-A748147 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "ID-TB-MASTER-PRODUCT-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-TB-MASTER-PRODUCT-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TB-MASTER-PRODUCT-FILEWATCH', key='resolved_key') }}"
-A718848 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "736543_001-ID-HUBTOMART-REF-CUST-IDN"
-A736543 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54176_001-ID-HUBTOMART-REF-CUST-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-PRODUCT-UDC-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-PRODUCT-UDC-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-PRODUCT-UDC-FILEWATCH', key='resolved_key') }}"
-A722687 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "738717_010-ID-HUBTOMART-TXN-VACCINE-INVENTORY-IDN"
-A738717 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54187_010-ID-HUBTOMART-TXN-VACCINE-INVENTORY-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A738762 = DummyOperator (task_id = "738762_020-ASSOCIATED-CALLBACK-JOB-MONITOR-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL", task_display_name = "58291_020-ASSOCIATED-CALLBACK-JOB-MONITOR-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL", dag = dag)
-
-A728327 = DummyOperator (task_id = "728327_DA-COM-GEM-ID-EXCEPTION", task_display_name = "58286_DA-COM-GEM-ID-EXCEPTION", dag = dag)
-
-_task_id = "ID-TB-HOSPITAL-OUTLET-MAP-FILEWATCH"
-A710447 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS, 
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "747491_008-ID-LAKETOHUB-TXN-TARGET-SALES-IDN"
-A747491 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54194_008-ID-LAKETOHUB-TXN-TARGET-SALES-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-TARGET-SALES-OTC-FILEWATCH"
-A713117 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-A722138 = DummyOperator (task_id = "722138_001-GEM-DATABRICKS-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL", task_display_name = "57502_001-GEM-DATABRICKS-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL", dag = dag)
-
-_task_id = "730674_002-ID-HUBTOMART-REF-PROD-IDN"
-A730674 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54177_002-ID-HUBTOMART-REF-PROD-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "738046_010-DATABRICKS-RUN-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL"
-A738046 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="57503_010-DATABRICKS-RUN-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A721256 = DummyOperator (task_id = "721256_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-ID", task_display_name = "61106_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-ID", dag = dag)
-
-ASTART = DummyOperator (task_id = "START", dag = dag)
-
-_task_id = "ID-MASTER-EMPLOYEE-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-MASTER-EMPLOYEE-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-MASTER-EMPLOYEE-FILEWATCH', key='resolved_key') }}"
-A740367 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-EMPLOYEE-TEAM-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-EMPLOYEE-TEAM-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-EMPLOYEE-TEAM-FILEWATCH', key='resolved_key') }}"
-A734374 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-SALES-UDC-FILEWATCH"
-A719539 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-A709247 = DummyOperator (task_id = "709247_DA-COM-GEM-ID", task_display_name = "54117_DA-COM-GEM-ID", dag = dag)
-
-_task_id = "727062_003-ID-HUBTOMART-CUST-XREF-IDN"
-A727062 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54180_003-ID-HUBTOMART-CUST-XREF-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A728328 = DummyOperator (task_id = "728328_001-GEM-DATABRICKS-NOTEBOOK-CALLBACK-ID-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL", task_display_name = "58287_001-GEM-DATABRICKS-NOTEBOOK-CALLBACK-ID-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL", dag = dag)
-
-A722139 = DummyOperator (task_id = "722139_020-ASSOCIATED-CALLBACK-JOB-MONITOR-ID-SALES-UDC-FILE-VALIDATION-EMAIL", task_display_name = "57505_020-ASSOCIATED-CALLBACK-JOB-MONITOR-ID-SALES-UDC-FILE-VALIDATION-EMAIL", dag = dag)
-
-_task_id = "ID-SALESFORCE-CUSTOMER-ALIGNMENT-FILEWATCH"
-A715145 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "742267_002-ID-LAKETOHUB-REF-PROD-IDN"
-A742267 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54188_002-ID-LAKETOHUB-REF-PROD-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "728541_003-ID-LAKETOLAKE-TARGET-SALES-STG"
-A728541 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54200_003-ID-LAKETOLAKE-TARGET-SALES-STG",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A720540 = DummyOperator (task_id = "720540_002-GEM-DATABRICKS-CALLBACK-ID-SALES-UDC-FILE-VALIDATION-EMAIL", task_display_name = "57504_002-GEM-DATABRICKS-CALLBACK-ID-SALES-UDC-FILE-VALIDATION-EMAIL", dag = dag)
-
-_task_id = "ID-TB-MASTER-PRODUCT-FILEWATCH"
-A709250 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-_task_id = "721257_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC"
-A721257 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="61107_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-TB-HOSPITAL-OUTLET-MAP-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-TB-HOSPITAL-OUTLET-MAP-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TB-HOSPITAL-OUTLET-MAP-FILEWATCH', key='resolved_key') }}"
-A739578 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "741885_001-ID-LAKETOLAKE-ID-TB-SALES-UDC"
-A741885 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54198_001-ID-LAKETOLAKE-ID-TB-SALES-UDC",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "738868_006-ID-LAKETOHUB-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN"
-A738868 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54192_006-ID-LAKETOHUB-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A724358 = DummyOperator (task_id = "724358_DA-COM-GEM-ID-LAKE-TO-LAKE-BDM-JOBS", task_display_name = "54197_DA-COM-GEM-ID-LAKE-TO-LAKE-BDM-JOBS", dag = dag)
-
-_task_id = "744144_004-ID-LAKETOHUB-REF-CUST-IDN"
-A744144 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54190_004-ID-LAKETOHUB-REF-CUST-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-TARGET-SALES-VAC-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-TARGET-SALES-VAC-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TARGET-SALES-VAC-FILEWATCH', key='resolved_key') }}"
-A742973 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-A709248 = DummyOperator (task_id = "709248_DA-COM-GEM-ID-COMMON-LAMBDA", task_display_name = "54118_DA-COM-GEM-ID-COMMON-LAMBDA", dag = dag)
-
-_task_id = "748694_005-ID-HUBTOMART-REF-EMP-IDN"
-A748694 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name="54182_005-ID-HUBTOMART-REF-EMP-IDN",
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = {"job_parameters": params[af_env][_task_id]["job_parameters"]},
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
-
-_task_id = "ID-TARGET-SALES-TBE-FILEWATCH"
-A737431 = S3KeySensor (
-    task_id = _task_id,
-    poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,  
-    aws_conn_id = AWS_CONN_ID,
-    bucket_name = params[af_env][_task_id]["bucket_name"],
-    bucket_key = params[af_env][_task_id]["bucket_key"],
-    wildcard_match = True,
-    task_display_name = _task_id,
-    timeout = S3_SENSOR_TIMEOUT_SECONDS,
-    mode = "reschedule",
-    on_failure_callback=on_failure_callback_S3_wrapper,
-    on_success_callback=on_success_callback_S3_wrapper,
-    dag = dag
-)
-
-A717008 = DummyOperator (task_id = "717008_DA-COM-GEM-ID-DMP-EXCEPTION-SYNC", task_display_name = "61105_DA-COM-GEM-ID-DMP-EXCEPTION-SYNC", dag = dag)
-
-_task_id = "ID-SALES-UDC-LAKELOAD"
-_job_parameters = dict(params[af_env][_task_id]["job_parameters"])
-if "*" in params[af_env]["ID-SALES-UDC-FILEWATCH"]["bucket_key"]:
-    _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-SALES-UDC-FILEWATCH', key='resolved_key') }}"
-A746586 = DatabricksRunNowOperator(
-    task_id = _task_id,
-    task_display_name = _task_id,
-    databricks_conn_id = DATABRICKS_CONN_ID,
-    job_id = params[af_env][_task_id]["job_id"],
-    json = { "job_parameters": _job_parameters },
-    on_failure_callback = on_failure_callback_dbx_lf_job_wrapper,
-    on_success_callback = on_success_callback_dbx_lf_job_wrapper,
-    dag = dag,
-)
+with TaskGroup(
+    group_id="720539_DA-COM-GEM-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+    tooltip="57501_DA-COM-GEM-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+    prefix_group_id=False,
+    dag=dag
+) as A720539:
+    A720540 = DummyOperator(
+        task_id="720540_002-GEM-DATABRICKS-CALLBACK-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+        task_display_name="57504_002-GEM-DATABRICKS-CALLBACK-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+        dag=dag
+    )
+    A722138 = DummyOperator(
+        task_id="722138_001-GEM-DATABRICKS-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+        task_display_name="57502_001-GEM-DATABRICKS-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+        dag=dag
+    )
+    A720541 = DummyOperator(
+        task_id="720541_010-SHOW-DATABRICKS-JOB-STATUS-ID-FILE-VALIDATION-EMAIL",
+        task_display_name="57506_010-SHOW-DATABRICKS-JOB-STATUS-ID-FILE-VALIDATION-EMAIL",
+        dag=dag
+    )
+    A722139 = DummyOperator(
+        task_id="722139_020-ASSOCIATED-CALLBACK-JOB-MONITOR-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+        task_display_name="57505_020-ASSOCIATED-CALLBACK-JOB-MONITOR-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+        dag=dag
+    )
+    _task_id="738046_010-DATABRICKS-RUN-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL"
+    A738046 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="57503_010-DATABRICKS-RUN-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+
+with TaskGroup(
+    group_id="724741_DA-COM-GEM-ID-HUB-TO-MART-BDM-JOBS",
+    tooltip="54175_DA-COM-GEM-ID-HUB-TO-MART-BDM-JOBS",
+    prefix_group_id=False,
+    dag=dag
+) as A724741:
+    _task_id="727062_003-ID-HUBTOMART-CUST-XREF-IDN"
+    A727062 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54180_003-ID-HUBTOMART-CUST-XREF-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="729935_004-ID-HUBTOMART-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN"
+    A729935 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54181_004-ID-HUBTOMART-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="730674_002-ID-HUBTOMART-REF-PROD-IDN"
+    A730674 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54177_002-ID-HUBTOMART-REF-PROD-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="732269_007-ID-HUBTOMART-TXN-ACTUAL-SALES-IDN"
+    A732269 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54184_007-ID-HUBTOMART-TXN-ACTUAL-SALES-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="735229_006-ID-HUBTOMART-TXN-TARGET-SALES-IDN"
+    A735229 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54183_006-ID-HUBTOMART-TXN-TARGET-SALES-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="735446_008-ID-HUBTOMART-REF-CUST-TERR-ALIGNMENT-IDN"
+    A735446 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54185_008-ID-HUBTOMART-REF-CUST-TERR-ALIGNMENT-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="735869_009-ID-HUBTOMART-REF-PROD-PRICE-IDN"
+    A735869 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54186_009-ID-HUBTOMART-REF-PROD-PRICE-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="736543_001-ID-HUBTOMART-REF-CUST-IDN"
+    A736543 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54176_001-ID-HUBTOMART-REF-CUST-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="012-ID-TXN-ACTUAL-SALES-IDN-DICO-SUCCESS-MAIL-SLEEP-JOB-DEPCHECK"
+    A738608_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("012-ID-TXN-ACTUAL-SALES-IDN-DICO-SUCCESS-MAIL-SLEEP-JOB"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="738717_010-ID-HUBTOMART-TXN-VACCINE-INVENTORY-IDN"
+    A738717 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54187_010-ID-HUBTOMART-TXN-VACCINE-INVENTORY-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="011-ID-TXN-ACTUAL-SALES-IDN-APL-SUCCESS-MAIL-SLEEP-JOB-DEPCHECK"
+    A747788_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("011-ID-TXN-ACTUAL-SALES-IDN-APL-SUCCESS-MAIL-SLEEP-JOB"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="748694_005-ID-HUBTOMART-REF-EMP-IDN"
+    A748694 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54182_005-ID-HUBTOMART-REF-EMP-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    A738608 = DummyOperator(
+        task_id="738608_012-ID-TXN-ACTUAL-SALES-IDN-DICO-SUCCESS-MAIL-SLEEP-JOB",
+        task_display_name="58293_012-ID-TXN-ACTUAL-SALES-IDN-DICO-SUCCESS-MAIL-SLEEP-JOB",
+        on_success_callback = on_success_callback_python_wrapper,
+        on_failure_callback = on_failure_callback_python_wrapper,
+        dag=dag
+    )
+
+    A747788 = DummyOperator(
+        task_id="747788_011-ID-TXN-ACTUAL-SALES-IDN-APL-SUCCESS-MAIL-SLEEP-JOB",
+        task_display_name="58292_011-ID-TXN-ACTUAL-SALES-IDN-APL-SUCCESS-MAIL-SLEEP-JOB",
+        on_success_callback = on_success_callback_python_wrapper,
+        on_failure_callback = on_failure_callback_python_wrapper,
+        dag=dag
+    )
+
+with TaskGroup(
+    group_id="710099_DA-COM-GEM-ID-LAKE-TO-HUB-BDM-JOBS",
+    tooltip="54178_DA-COM-GEM-ID-LAKE-TO-HUB-BDM-JOBS",
+    prefix_group_id=False,
+    dag=dag
+) as A710099:
+    _task_id="009-ID-LAKETOHUB-REF-PROD-PRICE-IDN-DEPCHECK"
+    A710100_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("009-ID-LAKETOHUB-REF-PROD-PRICE-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="001-ID-LAKETOHUB-CUST-XREF-IDN-DEPCHECK"
+    A711942_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("001-ID-LAKETOHUB-CUST-XREF-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="005-ID-LAKETOHUB-REF-CUST-TERR-ALIGNMENT-IDN-DEPCHECK"
+    A717929_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("005-ID-LAKETOHUB-REF-CUST-TERR-ALIGNMENT-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="003-ID-LAKETOHUB-REF-EMP-IDN-DEPCHECK"
+    A738127_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("003-ID-LAKETOHUB-REF-EMP-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="006-ID-LAKETOHUB-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN-DEPCHECK"
+    A738868_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("006-ID-LAKETOHUB-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="002-ID-LAKETOHUB-REF-PROD-IDN-DEPCHECK"
+    A742267_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("002-ID-LAKETOHUB-REF-PROD-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="743417_010-ID-LAKETOHUB-TXN-VACCINE-INVENTORY-IDN"
+    A743417 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54196_010-ID-LAKETOHUB-TXN-VACCINE-INVENTORY-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="004-ID-LAKETOHUB-REF-CUST-IDN-DEPCHECK"
+    A744144_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("004-ID-LAKETOHUB-REF-CUST-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="008-ID-LAKETOHUB-TXN-TARGET-SALES-IDN-DEPCHECK"
+    A747491_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("008-ID-LAKETOHUB-TXN-TARGET-SALES-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN-DEPCHECK"
+    A748793_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="710100_009-ID-LAKETOHUB-REF-PROD-PRICE-IDN"
+    A710100 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54195_009-ID-LAKETOHUB-REF-PROD-PRICE-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="711942_001-ID-LAKETOHUB-CUST-XREF-IDN"
+    A711942 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54179_001-ID-LAKETOHUB-CUST-XREF-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="717929_005-ID-LAKETOHUB-REF-CUST-TERR-ALIGNMENT-IDN"
+    A717929 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54191_005-ID-LAKETOHUB-REF-CUST-TERR-ALIGNMENT-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="738127_003-ID-LAKETOHUB-REF-EMP-IDN"
+    A738127 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54189_003-ID-LAKETOHUB-REF-EMP-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="747491_008-ID-LAKETOHUB-TXN-TARGET-SALES-IDN"
+    A747491 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54194_008-ID-LAKETOHUB-TXN-TARGET-SALES-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="742267_002-ID-LAKETOHUB-REF-PROD-IDN"
+    A742267 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54188_002-ID-LAKETOHUB-REF-PROD-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="738868_006-ID-LAKETOHUB-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN"
+    A738868 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54192_006-ID-LAKETOHUB-REF-EMP-TERR-ALIGNMENT-HIERARCHY-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="744144_004-ID-LAKETOHUB-REF-CUST-IDN"
+    A744144 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54190_004-ID-LAKETOHUB-REF-CUST-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="748793_007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN"
+    A748793 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54193_007-ID-LAKETOHUB-TXN-ACTUAL-SALES-IDN",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+
+with TaskGroup(
+    group_id="728327_DA-COM-GEM-ID-EXCEPTION",
+    tooltip="58286_DA-COM-GEM-ID-EXCEPTION",
+    prefix_group_id=False,
+    dag=dag
+) as A728327:
+    A733452 = DummyOperator(
+        task_id="733452_001-GEM-DATABRICKS-NOTEBOOK-ID-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL",
+        task_display_name="58289_001-GEM-DATABRICKS-NOTEBOOK-ID-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL",
+        dag=dag
+    )
+    A728328 = DummyOperator(
+        task_id="728328_001-GEM-DATABRICKS-NOTEBOOK-CALLBACK-ID-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL",
+        task_display_name="58287_001-GEM-DATABRICKS-NOTEBOOK-CALLBACK-ID-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL",
+        dag=dag
+    )
+    A738762 = DummyOperator(
+        task_id="738762_020-ASSOCIATED-CALLBACK-JOB-MONITOR-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL",
+        task_display_name="58291_020-ASSOCIATED-CALLBACK-JOB-MONITOR-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL",
+        dag=dag
+    )
+    _task_id="747667_010-DATABRICKS-RUN-NOTEBOOK-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL"
+    A747667 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="58290_010-DATABRICKS-RUN-NOTEBOOK-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    A734713 = DummyOperator(
+        task_id="734713_010-SHOW-DATABRICKS-JOB-STATUS-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL",
+        task_display_name="58288_010-SHOW-DATABRICKS-JOB-STATUS-SALESFORCE-CUSTOMER-ALIGNMENT-EXCEPTION-EMAIL",
+        dag=dag
+    )
+
+with TaskGroup(
+    group_id="717008_DA-COM-GEM-ID-DMP-EXCEPTION-SYNC",
+    tooltip="61105_DA-COM-GEM-ID-DMP-EXCEPTION-SYNC",
+    prefix_group_id=False,
+    dag=dag
+) as A717008:
+    A717009 = DummyOperator(
+        task_id="717009_002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-ID",
+        task_display_name="61108_002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-ID",
+        dag=dag
+    )
+    A721256 = DummyOperator(
+        task_id="721256_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-ID",
+        task_display_name="61106_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-ID",
+        dag=dag
+    )
+    A742574 = DummyOperator(
+        task_id="742574_020-ASSOCIATED-CALLBACK-JOB-MONITOR-DMP-EXCEPTION-SYNC",
+        task_display_name="61109_020-ASSOCIATED-CALLBACK-JOB-MONITOR-DMP-EXCEPTION-SYNC",
+        dag=dag
+    )
+    A740418 = DummyOperator(
+        task_id="740418_010-SHOW-DATABRICKS-JOB-STATUS-DMP-EXCEPTION-SYNC",
+        task_display_name="61110_010-SHOW-DATABRICKS-JOB-STATUS-DMP-EXCEPTION-SYNC",
+        dag=dag
+    )
+    _task_id="721257_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC"
+    A721257 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="61107_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+
+ASTART = DummyOperator(task_id="START", dag=dag)
+
+A709247 = DummyOperator(
+    task_id="709247_DA-COM-GEM-ID",
+    task_display_name="54117_DA-COM-GEM-ID",
+    dag=dag
+)
+
+with TaskGroup(
+    group_id="724358_DA-COM-GEM-ID-LAKE-TO-LAKE-BDM-JOBS",
+    tooltip="54197_DA-COM-GEM-ID-LAKE-TO-LAKE-BDM-JOBS",
+    prefix_group_id=False,
+    dag=dag
+) as A724358:
+    _task_id="002-ID-LAKETOLAKE-ID-TB-VACCINE-SALES-STG-DEPCHECK"
+    A724359_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("002-ID-LAKETOLAKE-ID-TB-VACCINE-SALES-STG"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="003-ID-LAKETOLAKE-TARGET-SALES-STG-DEPCHECK"
+    A728541_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("003-ID-LAKETOLAKE-TARGET-SALES-STG"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="001-ID-LAKETOLAKE-ID-TB-SALES-UDC-DEPCHECK"
+    A741885_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("001-ID-LAKETOLAKE-ID-TB-SALES-UDC"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="730873_004-ID-LAKETOLAKE-VACCINE-DAILY-STOCK-STG"
+    A730873 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54201_004-ID-LAKETOLAKE-VACCINE-DAILY-STOCK-STG",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="741885_001-ID-LAKETOLAKE-ID-TB-SALES-UDC"
+    A741885 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54198_001-ID-LAKETOLAKE-ID-TB-SALES-UDC",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="728541_003-ID-LAKETOLAKE-TARGET-SALES-STG"
+    A728541 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54200_003-ID-LAKETOLAKE-TARGET-SALES-STG",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="724359_002-ID-LAKETOLAKE-ID-TB-VACCINE-SALES-STG"
+    A724359 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name="54199_002-ID-LAKETOLAKE-ID-TB-VACCINE-SALES-STG",
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={"job_parameters": params[af_env][_task_id]["job_parameters"]},
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+
+with TaskGroup(
+    group_id="709248_DA-COM-GEM-ID-COMMON-LAMBDA",
+    tooltip="54118_DA-COM-GEM-ID-COMMON-LAMBDA",
+    prefix_group_id=False,
+    dag=dag
+) as A709248:
+    _task_id="ID-TB-MASTER-PRODUCT-DEPCHECK"
+    A709250_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-TB-MASTER-PRODUCT-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-TARGET-SALES-TBE-DEPCHECK"
+    A737431_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-TARGET-SALES-TBE-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-TB-HOSPITAL-OUTLET-MAP-DEPCHECK"
+    A710447_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-TB-HOSPITAL-OUTLET-MAP-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-VACCINE-SALES-DEPCHECK"
+    A748147_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-VACCINE-SALES-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-TARGET-SALES-VAC-DEPCHECK"
+    A737571_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-TARGET-SALES-VAC-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-PRODUCT-UDC-DEPCHECK"
+    A742458_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-PRODUCT-UDC-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-EMPLOYEE-TEAM-DEPCHECK"
+    A747953_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-EMPLOYEE-TEAM-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-MASTER-EMPLOYEE-DEPCHECK"
+    A747831_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-MASTER-EMPLOYEE-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-TARGET-SALES-OTC-DEPCHECK"
+    A713117_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-TARGET-SALES-OTC-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-SALES-UDC-DEPCHECK"
+    A719539_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-SALES-UDC-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-TB-PRODUCT-PRICE-DEPCHECK"
+    A720348_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-TB-PRODUCT-PRICE-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-CUSTOMER-UDC-DEPCHECK"
+    A737634_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-CUSTOMER-UDC-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-SALESFORCE-CUSTOMER-ALIGNMENT-DEPCHECK"
+    A715145_DEP_CHECK = PythonSensor (
+        task_id=_task_id,
+        task_display_name=_task_id,
+        python_callable=check_variable_dependency("ID-SALESFORCE-CUSTOMER-ALIGNMENT-FILEWATCH"),
+        poke_interval=PYTHON_SENSOR_POKE_INTERVAL_SECONDS,
+        timeout=PYTHON_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        dag=dag
+    )
+    _task_id="ID-VACCINE-DAILY-STOCK-FILEWATCH"
+    A739616 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-TARGET-SALES-TBE-FILEWATCH"
+    A737431 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,  
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-PRODUCT-UDC-FILEWATCH"
+    A742458 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-TB-PRODUCT-PRICE-FILEWATCH"
+    A720348 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-SALESFORCE-CUSTOMER-ALIGNMENT-FILEWATCH"
+    A715145 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-TARGET-SALES-OTC-FILEWATCH"
+    A713117 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-EMPLOYEE-TEAM-FILEWATCH"
+    A747953 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID ,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-CUSTOMER-UDC-FILEWATCH"
+    A737634 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-VACCINE-SALES-FILEWATCH"
+    A748147 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-TARGET-SALES-VAC-FILEWATCH"
+    A737571 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-SALES-UDC-FILEWATCH"
+    A719539 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-TB-MASTER-PRODUCT-FILEWATCH"
+    A709250 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-CUSTOMER-UDC-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-CUSTOMER-UDC-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-CUSTOMER-UDC-FILEWATCH', key='resolved_key') }}"
+    A738058 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-MASTER-EMPLOYEE-FILEWATCH"
+    A747831 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS,
+        aws_conn_id = AWS_CONN_ID ,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-TB-HOSPITAL-OUTLET-MAP-FILEWATCH"
+    A710447 = S3KeySensor (
+        task_id=_task_id,
+        poke_interval = S3_SENSOR_POKE_INTERVAL_SECONDS, 
+        aws_conn_id = AWS_CONN_ID,
+        bucket_name = params[af_env][_task_id]["bucket_name"],
+        bucket_key = params[af_env][_task_id]["bucket_key"],
+        wildcard_match = True,
+        task_display_name=_task_id,
+        timeout = S3_SENSOR_TIMEOUT_SECONDS,
+        mode="reschedule",
+        on_failure_callback=on_failure_callback_S3_wrapper,
+        on_success_callback=on_success_callback_S3_wrapper,
+        dag=dag
+    )
+    _task_id="ID-TARGET-SALES-TBE-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-TARGET-SALES-TBE-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TARGET-SALES-TBE-FILEWATCH', key='resolved_key') }}"
+    A743058 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-TB-MASTER-PRODUCT-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-TB-MASTER-PRODUCT-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TB-MASTER-PRODUCT-FILEWATCH', key='resolved_key') }}"
+    A718848 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-SALESFORCE-CUSTOMER-ALIGNMENT-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-SALESFORCE-CUSTOMER-ALIGNMENT-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-SALESFORCE-CUSTOMER-ALIGNMENT-FILEWATCH', key='resolved_key') }}"
+    A731370 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-SALES-UDC-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-SALES-UDC-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-SALES-UDC-FILEWATCH', key='resolved_key') }}"
+    A746586 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-TB-HOSPITAL-OUTLET-MAP-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-TB-HOSPITAL-OUTLET-MAP-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TB-HOSPITAL-OUTLET-MAP-FILEWATCH', key='resolved_key') }}"
+    A739578 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-TARGET-SALES-OTC-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-TARGET-SALES-OTC-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TARGET-SALES-OTC-FILEWATCH', key='resolved_key') }}"
+    A729800 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-VACCINE-DAILY-STOCK-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-VACCINE-DAILY-STOCK-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-VACCINE-DAILY-STOCK-FILEWATCH', key='resolved_key') }}"
+    A714664 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-TB-PRODUCT-PRICE-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-TB-PRODUCT-PRICE-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TB-PRODUCT-PRICE-FILEWATCH', key='resolved_key') }}"
+    A726545 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-VACCINE-SALES-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-VACCINE-SALES-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-VACCINE-SALES-FILEWATCH', key='resolved_key') }}"
+    A732893 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-TARGET-SALES-VAC-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-TARGET-SALES-VAC-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-TARGET-SALES-VAC-FILEWATCH', key='resolved_key') }}"
+    A742973 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-MASTER-EMPLOYEE-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-MASTER-EMPLOYEE-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-MASTER-EMPLOYEE-FILEWATCH', key='resolved_key') }}"
+    A740367 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-PRODUCT-UDC-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-PRODUCT-UDC-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-PRODUCT-UDC-FILEWATCH', key='resolved_key') }}"
+    A722687 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
+    _task_id="ID-EMPLOYEE-TEAM-LAKELOAD"
+    _job_parameters = dict(params[af_env][_task_id]["job_parameters"])
+    if "*" in params[af_env]["ID-EMPLOYEE-TEAM-FILEWATCH"]["bucket_key"]:
+        _job_parameters["bucket_key"] = "{{ ti.xcom_pull(task_ids='ID-EMPLOYEE-TEAM-FILEWATCH', key='resolved_key') }}"
+    A734374 = DatabricksRunNowOperator(
+        task_id=_task_id,
+        task_display_name=_task_id,
+        databricks_conn_id=DATABRICKS_CONN_ID,
+        job_id=params[af_env][_task_id]["job_id"],
+        json={ "job_parameters": _job_parameters },
+        on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+        on_success_callback=on_success_callback_dbx_lf_job_wrapper,
+        dag=dag,
+    )
 
 ####================== Dependency Management: Task Dependencies =================
 
@@ -1966,10 +1957,8 @@ A720348_DEP_CHECK >> [A720348]
 A720348 >> [A726545]
 A711942_DEP_CHECK >> [A711942]
 A711942 >> [A727062]
-A720539 >> [A720540, A722138]
 A733452 >> [A747667]
 A724359_DEP_CHECK >> [A724359]
-A724741 >> [A727062, A729935, A730674, A732269, A735229, A735446, A735869, A736543, A738608_DEP_CHECK, A738717, A747788_DEP_CHECK, A748694]
 A739616 >> [A714664]
 A740418 >> [A742574]
 A747953_DEP_CHECK >> [A747953]
@@ -1978,7 +1967,6 @@ A748793_DEP_CHECK >> [A748793]
 A737571_DEP_CHECK >> [A737571]
 A737571 >> [A742973]
 A720541 >> [A722139]
-A710099 >> [A710100_DEP_CHECK, A711942_DEP_CHECK, A717929_DEP_CHECK, A738127_DEP_CHECK, A738868_DEP_CHECK, A742267_DEP_CHECK, A743417, A744144_DEP_CHECK, A747491_DEP_CHECK, A748793_DEP_CHECK]
 A747831_DEP_CHECK >> [A747831]
 A747831 >> [A740367]
 A737634_DEP_CHECK >> [A737634]
@@ -1992,7 +1980,6 @@ A738127_DEP_CHECK >> [A738127]
 A717009 >> [A740418]
 A748147_DEP_CHECK >> [A748147]
 A748147 >> [A732893]
-A728327 >> [A728328, A733452]
 A710447_DEP_CHECK >> [A710447]
 A710447 >> [A739578]
 A747491_DEP_CHECK >> [A747491]
@@ -2001,11 +1988,10 @@ A713117 >> [A729800]
 A722138 >> [A738046]
 A738046 >> [A722139]
 A721256 >> [A721257]
-ASTART >> [A709247]
 A719539_DEP_CHECK >> [A719539]
 A719539 >> [A746586]
-A709247 >> [A709248, A710099, A717008, A720539, A724358, A724741, A728327]
 A728328 >> [A734713]
+ASTART >> [A709247]
 A715145_DEP_CHECK >> [A715145]
 A715145 >> [A731370]
 A742267_DEP_CHECK >> [A742267]
@@ -2016,12 +2002,9 @@ A709250 >> [A718848]
 A721257 >> [A742574]
 A741885_DEP_CHECK >> [A741885]
 A738868_DEP_CHECK >> [A738868]
-A724358 >> [A724359_DEP_CHECK, A728541_DEP_CHECK, A730873, A741885_DEP_CHECK]
 A744144_DEP_CHECK >> [A744144]
-A709248 >> [A709250_DEP_CHECK, A737431_DEP_CHECK, A710447_DEP_CHECK, A713117_DEP_CHECK, A715145_DEP_CHECK, A719539_DEP_CHECK, A720348_DEP_CHECK, A747953_DEP_CHECK, A737634_DEP_CHECK, A747831_DEP_CHECK, A737571_DEP_CHECK, A739616, A742458_DEP_CHECK, A748147_DEP_CHECK]
 A737431_DEP_CHECK >> [A737431]
 A737431 >> [A743058]
-A717008 >> [A717009, A721256]
 
 ####================== JOB-EVENT edges (action_type=4) =================
 
@@ -2050,3 +2033,7 @@ A743058 >> [A728541]
 A732893 >> [A724359, A744144]
 A742973 >> [A728541]
 A714664 >> [A730873]
+
+####================== Group fan-out (kept LAST so TaskGroup roots are computed on the complete graph) =================
+
+A709247 >> [A709248, A710099, A717008, A720539, A724358, A724741, A728327]

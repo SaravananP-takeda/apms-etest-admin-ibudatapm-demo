@@ -1,0 +1,1 @@
+mv sonarcloud.yml.txt sonarcloud.yml

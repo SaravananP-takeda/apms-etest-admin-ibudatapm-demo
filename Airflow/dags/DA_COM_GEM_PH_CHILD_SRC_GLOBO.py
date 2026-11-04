@@ -5,6 +5,13 @@ from datetime import timedelta, datetime
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.models import Variable
+from airflow.utils.email import send_email
+
+from tak_airflow_callbacks_utils import (
+    on_success_callback_dbx_lf_job,
+    on_failure_callback_dbx_lf_job,
+)
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 from airflow.providers.databricks.operators.databricks import (
     DatabricksRunNowOperator
@@ -26,6 +33,8 @@ sys.path.insert(
 from DA_COM_GEM_PH_PARAMETERS import (
     PARAMS_DICT,
     DATABRICKS_CONN_ID,
+    SNOW_ATTRIBUTES_DEFAULTS,
+    EMAIL_RECIPIENTS,
 )
 
 
@@ -35,6 +44,93 @@ from DA_COM_GEM_PH_PARAMETERS import (
 
 af_env = Variable.get("af_env", default_var="DEV")
 params = PARAMS_DICT
+
+
+# ============================================================
+# CALLBACKS (success / failure mail) - same as DA-COM-GEM-PH parent
+# ============================================================
+
+snow_attributes = {
+    'configuration_item': SNOW_ATTRIBUTES_DEFAULTS['configuration_item'],
+    'severity':           SNOW_ATTRIBUTES_DEFAULTS['severity'],
+    'ci_apms_id':         SNOW_ATTRIBUTES_DEFAULTS['ci_apms_id'],
+    'ci_bsn_id':          SNOW_ATTRIBUTES_DEFAULTS['ci_bsn_id'],
+    'apms_id':            'APMS-92144',
+    'bsn_id':             'BSN0020621',
+    'type':               'AWS-Airflow-EU',
+    'env':                'PROD',
+}
+
+
+class DAGCallbackAction():
+
+    def __init__(self):
+
+        # On Success / On Failure handlers for this DAG's Hub-to-Mart task
+        self.on_success_completion_handlers = {
+            '725593_004-PH-HUBTOMART-TXN-PH-WHOLESALER-SALES': ['PH_GLOBO_WHOLESALER_SALES_LOAD_SUCCESS'],
+        }
+
+        self.on_failure_abnormal_completion_handlers = {
+            '725593_004-PH-HUBTOMART-TXN-PH-WHOLESALER-SALES': ['PH_GLOBO_WHOLESALER_SALES_LOAD_FAILURE'],
+        }
+
+        self.on_failure_error_handlers = {
+
+        }
+
+        self.handler_callback_fun_map = {
+            'PH_GLOBO_WHOLESALER_SALES_LOAD_SUCCESS': self.PH_GLOBO_WHOLESALER_SALES_LOAD_SUCCESS,
+            'PH_GLOBO_WHOLESALER_SALES_LOAD_FAILURE': self.PH_GLOBO_WHOLESALER_SALES_LOAD_FAILURE,
+        }
+
+        self.snow_attributes = snow_attributes
+
+        self.EMAIL_TO = EMAIL_RECIPIENTS.get(af_env)
+
+    def PH_GLOBO_WHOLESALER_SALES_LOAD_SUCCESS(self,context):
+        email_to = self.EMAIL_TO
+
+        email_subject = "Globo wholesaler Data refresh completion for Philippines"
+
+        email_message = """Dear All,
+
+The Globo wholesaler data has been refreshed successfully for Philippines.
+
+Thanks"""
+
+        send_email(
+            to=email_to,
+            subject=email_subject,
+            html_content=email_message
+        )
+
+    def PH_GLOBO_WHOLESALER_SALES_LOAD_FAILURE(self,context):
+        email_to = self.EMAIL_TO
+        email_subject = "Globo wholesaler data refresh failure  for Philippines"
+
+        email_message = """Dear All,
+
+Attempts to refresh Globo wholesaler data for Philippines failed and the team is working to resolve.
+
+Thanks"""
+
+        send_email(
+            to=email_to,
+            subject=email_subject,
+            html_content=email_message
+        )
+
+
+def on_success_callback_dbx_lf_job_wrapper(context):
+    dag_callback_action_obj = DAGCallbackAction()
+    on_success_callback_dbx_lf_job(context, dag_callback_action_obj)
+
+
+def on_failure_callback_dbx_lf_job_wrapper(context):
+    dag_callback_action_obj = DAGCallbackAction()
+    on_failure_callback_dbx_lf_job(context, dag_callback_action_obj)
+
 
 
 # ============================================================
@@ -157,6 +253,8 @@ A725593 = DatabricksRunNowOperator(
             params[af_env][_task_id]["job_parameters"]
     },
     execution_timeout=timedelta(minutes=60),
+    on_failure_callback=on_failure_callback_dbx_lf_job_wrapper,
+    on_success_callback=on_success_callback_dbx_lf_job_wrapper,
     dag=dag,
 )
 
@@ -165,46 +263,18 @@ A725593 = DatabricksRunNowOperator(
 # DMP EXCEPTION SYNC
 # ============================================================
 
-# 61123
-A709365 = DummyOperator(
+# ============================================================
+# DMP EXCEPTION SYNC (separate DAG: DA-COM-GEM-PH-CHILD-DMP-EXCEPTION-SYNC-GRP)
+# ============================================================
+
+A709365 = TriggerDagRunOperator(
     task_id="709365_DA-COM-GEM-PH-DMP-EXCEPTION-SYNC",
     task_display_name="61123_DA-COM-GEM-PH-DMP-EXCEPTION-SYNC",
-    execution_timeout=timedelta(minutes=60),
-    dag=dag,
-)
-
-
-# 61124
-A709366 = DummyOperator(
-    task_id="709366_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-PH",
-    task_display_name="61124_001-GEM-DATABRICKS-NOTEBOOK-DMP-EXCEPTION-SYNC-PH",
-    execution_timeout=timedelta(minutes=60),
-    dag=dag,
-)
-
-
-# 61125
-_task_id = "748097_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC"
-
-A748097 = DatabricksRunNowOperator(
-    task_id=_task_id,
-    task_display_name="61125_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC",
-    databricks_conn_id=DATABRICKS_CONN_ID,
-    job_id=params[af_env][_task_id]["job_id"],
-    json={
-        "job_parameters":
-            params[af_env][_task_id]["job_parameters"]
-    },
-    execution_timeout=timedelta(minutes=60),
-    dag=dag,
-)
-
-
-# 61124.SUCCESS
-A709366_SUCCESS = DummyOperator(
-    task_id="709366.SUCCESS",
-    task_display_name="61124.SUCCESS",
-    execution_timeout=timedelta(minutes=60),
+    trigger_dag_id="DA-COM-GEM-PH-CHILD-DMP-EXCEPTION-SYNC",
+    wait_for_completion=True,
+    poke_interval=60,
+    reset_dag_run=False,
+    execution_timeout=timedelta(minutes=180),
     dag=dag,
 )
 
@@ -225,16 +295,10 @@ A737130 >> A725593
 # DMP flow
 A737130 >> A709365
 
-A709365 >> A709366
 
-A709366 >> [
-    A748097,
-    A709366_SUCCESS,
-]
 
 # END
 [
     A725593,
-    A748097,
-    A709366_SUCCESS,
+    A709365,
 ] >> END

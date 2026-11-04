@@ -1,16 +1,16 @@
 DATABRICKS_CONN_ID = "Databricks_BDMToDBX_Default"
 
 EMAIL_RECIPIENTS = {
-    'DEV': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com',
-    'TEST': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com',
-    'PROD': 'DL.EDB.GEM.UMEA.COMM@takeda.com, DL.EDB.COMM.UAMS@takeda.com'
+    'DEV': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com;DL.IBU.Data.Architecture.Products.POD@takeda.com',
+    'TEST': 'anush.gowda@takeda.com,premkumar.duraisamy@takeda.com,udayan.awasthi@takeda.com,arjun.dalal@takeda.com,dheeraj.jaiman@takeda.com,DL.GLBL.BDM.DBX.AXT.TEAM@takeda.com,DL.IBU.Data.Architecture.Products.POD@takeda.com',
+    'PROD': 'DL.IBU.Data.Architecture.Products.POD@takeda.com,DL.EDB.GEM.UMEA.COMM@takeda.com, DL.EDB.COMM.UAMS@takeda.com'
 }
 
-S3_SENSOR_POKE_INTERVAL_SECONDS = 15 * 60
-S3_SENSOR_TIMEOUT_SECONDS = 23 * 60 * 60 + 50 * 60
+S3_SENSOR_POKE_INTERVAL_SECONDS = 1 * 60
+S3_SENSOR_TIMEOUT_SECONDS = 25 * 60
 
-PYTHON_SENSOR_POKE_INTERVAL_SECONDS = 5 * 60
-PYTHON_SENSOR_TIMEOUT_SECONDS = 3 * 60 * 60
+PYTHON_SENSOR_POKE_INTERVAL_SECONDS = 1 * 60
+PYTHON_SENSOR_TIMEOUT_SECONDS = 25 * 60
 
 SNOW_ATTRIBUTES_DEFAULTS = {
     "configuration_item": "Commercial Common Data Pipeline [EDB] - Production-AWS-Airflow-EU",
@@ -25,7 +25,7 @@ PARAMS_DICT = {
         #Existing databricks jobs
         "614349_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC": {
             "job_type": "DBX_LF_JOB",
-            "job_id": "877928726445456",
+            "job_id": "174413206305646",
             "job_parameters": {
                 "loadtype": "full",
                 "timeperiod": "Daily",

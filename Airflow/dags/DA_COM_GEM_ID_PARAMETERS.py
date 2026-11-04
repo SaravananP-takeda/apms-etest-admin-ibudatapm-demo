@@ -1,19 +1,19 @@
 DATABRICKS_CONN_ID = "Databricks_BDMToDBX_Default"
 AWS_CONN_ID = "AWS_Default"
-GLOBALSCAPE_CONN_ID = "GLOBALSCAPE_CONN"
+GLOBALSCAPE_CONN_ID = "GLOBALSCAPE_CONN_BDMToDBX_Default"
 SSH_CONN_ID = "SSH_Default"
 
 EMAIL_RECIPIENTS = {
-    "DEV": "DL.IBU.Data.Architecture.And.Products.POD@takeda.com, sayali.mahajan@takeda.com",
-    "TEST": "DL.IBU.Data.Architecture.And.Products.POD@takeda.com",
+    "DEV": "DL.IBU.Data.Architecture.Products.POD@takeda.com, DL.GLBL.BDM.DBX.TEAM@takeda.com",
+    "TEST": "DL.IBU.Data.Architecture.Products.POD@takeda.com, DL.GLBL.BDM.DBX.TEAM@takeda.com",
     "PROD": "DL.EDB.GEM.ID.COMM@takeda.com, DL.EDB.COMM.UAMS@takeda.com",
 }
 
-S3_SENSOR_POKE_INTERVAL_SECONDS = 15 * 60
-S3_SENSOR_TIMEOUT_SECONDS = 23 * 60 * 60 + 50 * 60
+S3_SENSOR_POKE_INTERVAL_SECONDS = 1 * 60
+S3_SENSOR_TIMEOUT_SECONDS = 25 * 60
 
 PYTHON_SENSOR_POKE_INTERVAL_SECONDS = 5 * 60
-PYTHON_SENSOR_TIMEOUT_SECONDS = 3 * 60 * 60
+PYTHON_SENSOR_TIMEOUT_SECONDS = 25 * 60
 
 SNOW_ATTRIBUTES_DEFAULTS = {
     "configuration_item": "Commercial Common Data Pipeline [EDB] - Production-AWS-Airflow-EU",
@@ -357,14 +357,14 @@ PARAMS_DICT = {
         },
         '721257_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC': {
             'job_type': 'DBX_LF_JOB',
-            'job_id': '877928726445456',
+            'job_id': '174413206305646',
             'job_parameters': {
                 "loadtype": "full",
                 "timeperiod": "Daily",
                 "tidal_callbackname": "002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-ID",
                 "tidal_callback_jobid": "102457",
                 "country_name": "INDONESIA",
-                "notebook_name": "/COMM/COMM_IT_GEM/DM Portal/Notebook_DM_Portal_Exception"
+                "notebook_name": "/COMM/COMM_IT_GEM/DM Portal/Notebook_DM_Portal_Exception_New"
             },
         },
     },
@@ -683,9 +683,9 @@ PARAMS_DICT = {
                 "loadtype": "full",
                 "timeperiod": "Daily",
                 "tidal_callbackname": "001-GEM-DATABRICKS-NOTEBOOK-CALLBACK-SALESFORCE-CUSTOMER-ALIGNMENT-FOR-SEND-EMAIL",
-                "tidal_callback_jobid": "",
+                "tidal_callback_jobid": "79786",
                 "outbound_name": "ID_EXCEPTIONS",
-                "notebook_name": ""
+                "notebook_name": "/COMM/COMM_IT_GEM/INDONESIA/id_salesforce_customer_alignment_send_email"
             },
         },
         '738046_010-DATABRICKS-RUN-NOTEBOOK-ID-SALES-UDC-FILE-VALIDATION-EMAIL': {
@@ -695,21 +695,21 @@ PARAMS_DICT = {
                 "loadtype": "full",
                 "timeperiod": "Adhoc",
                 "tidal_callbackname": "002-GEM-DATABRICKS-CALLBACK-ID-SALES-UDC-FILE-VALIDATION-EMAIL",
-                "tidal_callback_jobid": "",
+                "tidal_callback_jobid": "78256",
                 "outbound_name": "SALES_UDC",
-                "notebook_name": ""
+                "notebook_name": "/COMM/COMM_IT_GEM/INDONESIA/id_sales_udc_send_email"
             },
         },
         '721257_010-DATABRICKS-RUN-NOTEBOOK-DMP-EXCEPTION-SYNC': {
             'job_type': 'DBX_LF_JOB',
-            'job_id': '261719682644888',
+            'job_id': '269749650678524',
             'job_parameters': {
                 "loadtype": "full",
                 "timeperiod": "Daily",
                 "tidal_callbackname": "002-GEM-DATABRICKS-CALLBACK-DMP-EXCEPTION-SYNC-ID",
-                "tidal_callback_jobid": "",
+                "tidal_callback_jobid": "61108",
                 "country_name": "INDONESIA",
-                "notebook_name": ""
+                "notebook_name": "/COMM/COMM_IT_GEM/DM Portal/Notebook_DM_Portal_Exception_New"
             },
         },
     },
